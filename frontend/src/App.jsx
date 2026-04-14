@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import NgoDashboard from './pages/NgoDashboard'; 
 import VolunteerDashboard from './pages/VolunteerDashboard';
+import TaskDetail from "./pages/TaskDetail";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/ngo-dashboard" element={<NgoDashboard />} />
         <Route path="/volunteer-dashboard" element={<VolunteerDashboard />} />
+        <Route path="/task/:id" element={<TaskDetail />} />
       </Routes>
     </BrowserRouter>
   );

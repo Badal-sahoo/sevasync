@@ -22,7 +22,7 @@ from apps.users.views import signup, login
 from apps.ngo.views import upload_csv,ngo_dashboard,ngo_requests,ngo_volunteers
 from apps.ai.views import extract_needs,heatmap_api
 from apps.volunteers.views import create_volunteer,volunteer_dashboard,volunteer_points_view ,volunteer_performance
-from apps.tasks.views import create_task, assign_task, update_status,respond_task,complete_task
+from apps.tasks.views import create_task, assign_task, update_status,respond_task,complete_task,get_task_detail
 from apps.matching.views import match_volunteers
 
 urlpatterns = [
@@ -36,6 +36,7 @@ urlpatterns = [
     path('api/ngo/dashboard/', ngo_dashboard),
     path('api/ngo/requests/', ngo_requests),
     path('api/ngo/volunteers/', ngo_volunteers),
+    path('api/task/<int:task_id>/', get_task_detail),
 
     path('api/heatmap/', heatmap_api),
 

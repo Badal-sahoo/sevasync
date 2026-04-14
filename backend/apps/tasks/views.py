@@ -34,19 +34,21 @@ def assign_task(request):
         return Response({"error": "Invalid IDs"}, status=400)
 
     if hasattr(task, 'assignment'):
-        return Response({"error": "Task already assigned"}, status=400)
+        return Response({"error": "Task already has request/assignment"}, status=400)
 
+    # 🔥 CREATE REQUEST (not assignment yet)
     Assignment.objects.create(
         task=task,
         volunteer=volunteer,
-        status="assigned"
+        status="requested"
     )
 
-    task.status = "assigned"
+    # 🔥 Update task status
+    task.status = "requested"
     task.save()
 
     return Response({
-        "message": "Task assigned successfully"
+        "message": "Request sent to volunteer"
     })
 
 
@@ -119,7 +121,7 @@ def respond_task(request):
     if not assignment:
         return Response({"error": "Assignment not found"}, status=400)
 
-    # ❌ Prevent invalid flow
+    # ❌ prevent invalid
     if assignment.status == "accepted" and action == "reject":
         return Response({"error": "Cannot reject after accepting"}, status=400)
 
@@ -136,6 +138,7 @@ def respond_task(request):
         assignment.status = "rejected"
         assignment.save()
 
+        # 🔥 Reset task
         assignment.task.status = "pending"
         assignment.task.save()
 
@@ -185,4 +188,37 @@ def complete_task(request):
     return Response({
         "message": "Task completed",
         "points_earned": points
+    })
+
+
+@api_view(['GET'])
+def get_task_detail(request, task_id):
+    try:
+        task = Task.objects.get(id=task_id)
+    except Task.DoesNotExist:
+        return Response({"error": "Task not found"}, status=404)
+
+    # Check assignment
+    assignment = Assignment.objects.filter(task=task).select_related('volunteer').first()
+
+    if assignment:
+        volunteer_data = {
+            "id": assignment.volunteer.id,
+            "name": getattr(assignment.volunteer, "name", ""),
+            "skills": getattr(assignment.volunteer, "skills", "")
+        }
+        assigned = True
+    else:
+        volunteer_data = None
+        assigned = False
+
+    return Response({
+        "task_id": task.id,
+        "need_type": task.need_type,
+        "location": task.location,
+        "urgency": task.urgency,
+        "total_needs": task.total_needs,
+        "status": task.status,
+        "assigned": assigned,
+        "volunteer": volunteer_data
     })

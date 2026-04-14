@@ -7,6 +7,7 @@ class Task(models.Model):
 
     STATUS = (
         ('pending', 'Pending'),
+        ('requested', 'Requested'),
         ('assigned', 'Assigned'),
         ('completed', 'Completed'),
     )
@@ -20,6 +21,13 @@ class Task(models.Model):
 
 
 class Assignment(models.Model):
+    STATUS = (
+        ('requested', 'Requested'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+    )
+
     task = models.OneToOneField(Task, on_delete=models.CASCADE)
     volunteer = models.ForeignKey(Volunteer, on_delete=models.CASCADE)
-    status = models.CharField(max_length=20, default='assigned')
+    status = models.CharField(max_length=20, choices=STATUS, default='requested')

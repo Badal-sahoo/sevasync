@@ -52,12 +52,31 @@ def volunteer_dashboard(request):
             "people": t.total_needs
         })
 
+    # If you want to include request_list in the response, move this block before the return statement above.
+    requests = Assignment.objects.filter(
+        volunteer=volunteer,
+        status="requested"
+    )
+
+    request_list = []
+    for a in requests:
+        t = a.task
+        request_list.append({
+            "task_id": t.id,
+            "type": t.need_type,
+            "location": t.location,
+            "urgency": t.urgency,
+            "people": t.total_needs
+        })
+
     return Response({
         "name": volunteer.user.name,
         "skills": volunteer.skills,
         "total_assigned": total_assigned,
         "completed_tasks": completed_tasks,
-        "active_tasks": active_list
+        "active_tasks": active_list,
+        "requested_tasks": request_list,
+        "requests": request_list
     })
 
 @api_view(['GET'])
