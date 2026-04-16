@@ -3,7 +3,7 @@ from apps.tasks.models import Task
 from .clustering import run_dbscan
 from .feature_builder import extract_features
 from .severity_engine import calculate_base_severity
-
+import traceback
 def run_pipeline_bulk(needs_queryset):
 
     needs = list(needs_queryset)
@@ -44,7 +44,7 @@ def run_pipeline_bulk(needs_queryset):
             ngo = cluster[0].ngo
             # 🔍 Check existing task (DEDUP)
             existing_task = Task.objects.filter(
-                ngo=ngo,
+                ngo=need.ngo,
                 need_type=need_type,
                 location=location_key,
                 status="pending"
@@ -61,15 +61,22 @@ def run_pipeline_bulk(needs_queryset):
                 existing_task.save()
 
             else:
+                try:
                 # ✅ Create new task
-                ngo = cluster[0].ngo
-                Task.objects.create(
-                    ngo=ngo,
-                    need_type=need_type,
-                    location=location_key,
-                    urgency=base_severity,
-                    total_needs=total
-                )
+                    ngo = cluster[0].ngo
+                    if not ngo:
+                        print("❌ NGO missing in cluster")
+                        return
+                    Task.objects.create(
+                        ngo=need.ngo,
+                        need_type=need_type,
+                        location=location_key,
+                        urgency=base_severity,
+                        total_needs=total
+                    )
+                except Exception as e:
+                    print("🔥 TASK CREATE ERROR:", e)
+                    traceback.print_exc()
 
 
 # 🔹 Handle isolated points (no cluster)
@@ -78,6 +85,7 @@ def process_single_need(need):
     location_key = f"{round(need.latitude, 2)},{round(need.longitude, 2)}"
 
     existing_task = Task.objects.filter(
+        ngo=need.ngo,
         need_type=need.need_type,
         location=location_key,
         status="pending"
@@ -89,6 +97,7 @@ def process_single_need(need):
 
     else:
         Task.objects.create(
+            ngo=need.ngo,
             need_type=need.need_type,
             location=location_key,
             urgency="LOW",

@@ -4,19 +4,35 @@ from rest_framework.response import Response
 from .models import Task, Assignment
 from apps.ai.models import Need
 from apps.volunteers.models import Volunteer
+from apps.users.models import User
 
 @api_view(['POST'])
 def create_task(request):
-    need = Need.objects.get(id=request.data.get('need_id'))
+    try:
+        user = request.user   # 🔥 logged-in NGO
 
-    task = Task.objects.create(
-        need=need,
-        title=request.data.get('title'),
-        location=request.data.get('location'),
-        urgency=request.data.get('urgency')
-    )
+        need_id = request.data.get('need_id')
+        if not need_id:
+            return Response({"error": "need_id required"}, status=400)
 
-    return Response({"task_id": task.id})
+        need = Need.objects.get(id=need_id)
+
+        task = Task.objects.create(
+            ngo=user,   # 🔥 FIXED (no ngo_id needed)
+            need=need,
+            title=request.data.get('title'),
+            location=request.data.get('location'),
+            urgency=request.data.get('urgency')
+        )
+
+        return Response({"task_id": task.id})
+
+    except Need.DoesNotExist:
+        return Response({"error": "Invalid need_id"}, status=404)
+
+    except Exception as e:
+        print("🔥 CREATE TASK ERROR:", str(e))
+        return Response({"error": str(e)}, status=500)
 
 
 @api_view(['POST'])
@@ -107,21 +123,24 @@ def update_status(request):
 @api_view(['POST'])
 def respond_task(request):
     task_id = request.data.get("task_id")
-    volunteer_id = request.data.get("volunteer_id")
     action = request.data.get("action")
 
-    if not task_id or not volunteer_id or not action:
-        return Response({"error": "task_id, volunteer_id, action required"}, status=400)
+    if not task_id or not action:
+        return Response({"error": "task_id and action required"}, status=400)
+
+    try:
+        volunteer = Volunteer.objects.get(user=request.user)
+    except Volunteer.DoesNotExist:
+        return Response({"error": "Volunteer not found"}, status=404)
 
     assignment = Assignment.objects.filter(
         task_id=task_id,
-        volunteer_id=volunteer_id
+        volunteer=volunteer
     ).first()
 
     if not assignment:
         return Response({"error": "Assignment not found"}, status=400)
 
-    # ❌ prevent invalid
     if assignment.status == "accepted" and action == "reject":
         return Response({"error": "Cannot reject after accepting"}, status=400)
 
@@ -138,7 +157,6 @@ def respond_task(request):
         assignment.status = "rejected"
         assignment.save()
 
-        # 🔥 Reset task
         assignment.task.status = "pending"
         assignment.task.save()
 
@@ -149,15 +167,18 @@ def respond_task(request):
 @api_view(['POST'])
 def complete_task(request):
     task_id = request.data.get("task_id")
-    volunteer_id = request.data.get("volunteer_id")
 
-    if not task_id or not volunteer_id:
-        return Response({"error": "task_id and volunteer_id required"}, status=400)
+    if not task_id:
+        return Response({"error": "task_id required"}, status=400)
 
+    try:
+        volunteer = Volunteer.objects.get(user=request.user)
+    except Volunteer.DoesNotExist:
+        return Response({"error": "Volunteer not found"}, status=404)
     # 🔍 Find assignment
     assignment = Assignment.objects.filter(
         task_id=task_id,
-        volunteer_id=volunteer_id
+        volunteer=volunteer
     ).first()
 
     if not assignment:
@@ -184,7 +205,9 @@ def complete_task(request):
         points = 30
     else:
         points = 10
-
+    volunteer.points += points
+    volunteer.tasks_completed += 1
+    volunteer.save()
     return Response({
         "message": "Task completed",
         "points_earned": points

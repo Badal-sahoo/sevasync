@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from .models import User
 from .serializers import UserSerializer
 from utils.firebase import verify_firebase_token # Import the verifier [cite: 580, 581]
+from apps.volunteers.models import Volunteer
+
 
 @api_view(['POST'])
 def login(request):
@@ -65,7 +67,14 @@ def signup(request):
             email=email,
             role=role
         )
-        
+        if role == "VOLUNTEER":
+            Volunteer.objects.create(
+                user=new_user,
+                skills=[],
+                location="Not set",
+                availability=True
+            )
+
         # Matching your architecture's expected output format
         return Response({
             "message": "User created successfully",

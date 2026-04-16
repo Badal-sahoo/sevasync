@@ -1,73 +1,85 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
 from .models import Volunteer
 from .serializers import VolunteerSerializer
 from apps.tasks.models import Task, Assignment
 
+
+# ==============================
+# 🆕 CREATE VOLUNTEER
+# ==============================
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def create_volunteer(request):
-    serializer = VolunteerSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"message": "Volunteer created"})
-    return Response(serializer.errors)
-
-@api_view(['GET'])
-def volunteer_dashboard(request):
-    volunteer_id = request.GET.get("volunteer_id")
-
-    if not volunteer_id:
-        return Response({"error": "volunteer_id required"}, status=400)
-
     try:
-        volunteer = Volunteer.objects.get(id=volunteer_id)
-    except:
-        return Response({"error": "Invalid volunteer_id"}, status=400)
+        # Prevent duplicate volunteer creation
+        if Volunteer.objects.filter(user=request.user).exists():
+            return Response({"error": "Volunteer already exists"}, status=400)
 
-    # ✅ Total assigned tasks
+        serializer = VolunteerSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response({"message": "Volunteer created successfully"})
+
+        return Response(serializer.errors, status=400)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+
+# ==============================
+# 📊 DASHBOARD
+# ==============================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def volunteer_dashboard(request):
+    try:
+        volunteer = Volunteer.objects.get(user=request.user)
+    except Volunteer.DoesNotExist:
+        return Response({"error": "Volunteer not found"}, status=404)
+
     assigned_tasks = Assignment.objects.filter(volunteer=volunteer)
-
     total_assigned = assigned_tasks.count()
 
-    # ✅ Completed tasks
     completed_tasks = Task.objects.filter(
         assignment__volunteer=volunteer,
         status="completed"
     ).count()
 
-    # ✅ Active tasks
     active_tasks = Task.objects.filter(
         assignment__volunteer=volunteer,
         status="assigned"
     )
 
-    active_list = []
-    for t in active_tasks:
-        active_list.append({
+    active_list = [
+        {
             "task_id": t.id,
             "type": t.need_type,
             "location": t.location,
             "urgency": t.urgency,
             "people": t.total_needs
-        })
+        }
+        for t in active_tasks
+    ]
 
-    # If you want to include request_list in the response, move this block before the return statement above.
-    requests = Assignment.objects.filter(
+    requested_tasks = Assignment.objects.filter(
         volunteer=volunteer,
         status="requested"
     )
 
-    request_list = []
-    for a in requests:
-        t = a.task
-        request_list.append({
-            "task_id": t.id,
-            "type": t.need_type,
-            "location": t.location,
-            "urgency": t.urgency,
-            "people": t.total_needs
-        })
+    request_list = [
+        {
+            "task_id": a.task.id,
+            "type": a.task.need_type,
+            "location": a.task.location,
+            "urgency": a.task.urgency,
+            "people": a.task.total_needs
+        }
+        for a in requested_tasks
+    ]
 
     return Response({
         "name": volunteer.user.name,
@@ -75,21 +87,44 @@ def volunteer_dashboard(request):
         "total_assigned": total_assigned,
         "completed_tasks": completed_tasks,
         "active_tasks": active_list,
-        "requested_tasks": request_list,
-        "requests": request_list
+        "requested_tasks": request_list
     })
 
+
+# ==============================
+# 👤 PROFILE
+# ==============================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_volunteer_profile(request):
+    try:
+        volunteer = Volunteer.objects.get(user=request.user)
+    except Volunteer.DoesNotExist:
+        return Response({"error": "Volunteer not found"}, status=404)
+
+    return Response({
+        "name": volunteer.user.name,
+        "email": volunteer.user.email,
+        "skills": volunteer.skills,
+        "location": volunteer.location,
+        "availability": volunteer.availability,
+        "points": volunteer.points,
+        "tasks_completed": volunteer.tasks_completed
+    })
+
+
+# ==============================
+# 🏆 POINTS & BADGES
+# ==============================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def volunteer_points_view(request):
-    """
-    Returns the volunteer's total points and dynamically calculates badges.
-    """
     try:
         volunteer = Volunteer.objects.get(user=request.user)
+
         badges = []
 
-        # 🥇 Points-based badges
+        # Points-based badges
         if volunteer.points >= 500:
             badges.append("Elite Responder 🏆")
         elif volunteer.points >= 300:
@@ -97,7 +132,7 @@ def volunteer_points_view(request):
         elif volunteer.points >= 100:
             badges.append("Rising Helper ✨")
 
-        # 🛡️ Task-based badges
+        # Task-based badges
         if volunteer.tasks_completed >= 20:
             badges.append("Disaster Hero 🚑")
         elif volunteer.tasks_completed >= 10:
@@ -105,7 +140,7 @@ def volunteer_points_view(request):
         elif volunteer.tasks_completed >= 5:
             badges.append("Veteran Responder 🛡️")
 
-        # 🚨 Urgency-based badge (NEW 🔥)
+        # Urgency-based badge
         high_tasks = Assignment.objects.filter(
             volunteer=volunteer,
             task__urgency="HIGH",
@@ -114,31 +149,29 @@ def volunteer_points_view(request):
 
         if high_tasks >= 5:
             badges.append("Crisis Warrior 🔥")
-            
+
         return Response({
-            "name": request.user.first_name or request.user.username,
+            "name": volunteer.user.name,
             "total_points": volunteer.points,
             "tasks_completed": volunteer.tasks_completed,
             "badges": badges
         })
-        
+
     except Volunteer.DoesNotExist:
-         return Response({"error": "Volunteer profile not found."}, status=404)
-    
+        return Response({"error": "Volunteer not found"}, status=404)
 
+
+# ==============================
+# 📈 PERFORMANCE
+# ==============================
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def volunteer_performance(request):
-    volunteer_id = request.GET.get("volunteer_id")
-
-    if not volunteer_id:
-        return Response({"error": "volunteer_id required"}, status=400)
-
     try:
-        volunteer = Volunteer.objects.get(id=volunteer_id)
-    except:
-        return Response({"error": "Invalid volunteer_id"}, status=400)
+        volunteer = Volunteer.objects.get(user=request.user)
+    except Volunteer.DoesNotExist:
+        return Response({"error": "Volunteer not found"}, status=404)
 
-    # 📊 Total completed
     completed = Assignment.objects.filter(
         volunteer=volunteer,
         status="completed"
@@ -146,12 +179,10 @@ def volunteer_performance(request):
 
     total_completed = completed.count()
 
-    # 📊 Urgency breakdown
     high = completed.filter(task__urgency="HIGH").count()
     medium = completed.filter(task__urgency="MEDIUM").count()
     low = completed.filter(task__urgency="LOW").count()
 
-    # 📊 Efficiency (simple)
     total_assigned = Assignment.objects.filter(volunteer=volunteer).count()
 
     efficiency = 0
@@ -168,3 +199,52 @@ def volunteer_performance(request):
         },
         "efficiency_percent": efficiency
     })
+
+
+# ==============================
+# ✏️ UPDATE PROFILE
+# ==============================
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_volunteer_profile(request):
+    try:
+        volunteer = Volunteer.objects.get(user=request.user)
+    except Volunteer.DoesNotExist:
+        return Response({"error": "Volunteer not found"}, status=404)
+
+    serializer = VolunteerSerializer(
+        volunteer,
+        data=request.data,
+        partial=True
+    )
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            "message": "Profile updated successfully",
+            "data": serializer.data
+        })
+
+    return Response(serializer.errors, status=400)
+
+
+# ==============================
+# 🔘 AVAILABILITY
+# ==============================
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_availability(request):
+    try:
+        volunteer = Volunteer.objects.get(user=request.user)
+    except Volunteer.DoesNotExist:
+        return Response({"error": "Volunteer not found"}, status=404)
+
+    availability = request.data.get("availability")
+
+    if availability is None:
+        return Response({"error": "Availability required"}, status=400)
+
+    volunteer.availability = availability
+    volunteer.save()
+
+    return Response({"message": "Availability updated"})

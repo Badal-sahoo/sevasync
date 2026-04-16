@@ -49,7 +49,8 @@ def process_csv_file(file_path, ngo_id):
                 Need.objects.bulk_create(batch)
 
         # 🔥 RUN PIPELINE ONLY ONCE
-        all_needs = Need.objects.exclude(latitude=None).exclude(longitude=None)
+        all_needs = Need.objects.filter(ngo_id=ngo_id)\
+            .exclude(latitude=None).exclude(longitude=None)
         run_pipeline_bulk(all_needs)
 
     finally:
