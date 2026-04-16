@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { uploadCSV } from "../services/ngoApi";
 
-const UploadCSV = ({ ngoId }) => {
+const UploadCSV = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -16,25 +16,13 @@ const UploadCSV = ({ ngoId }) => {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("ngo_id", ngoId);
-
     try {
       setLoading(true);
       setMessage("");
 
-      const res = await axios.post(
-        "http://127.0.0.1:8000/api/upload/",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const res = await uploadCSV(file);   // ✅ FIXED
 
-      setMessage(res.data.message || "Upload successful ✅");
+      setMessage(res.message || "Upload successful ✅");
     } catch (err) {
       console.error(err);
       setMessage("Upload failed ❌");

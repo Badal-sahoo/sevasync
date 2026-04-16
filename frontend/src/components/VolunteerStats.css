@@ -1,0 +1,156 @@
+.volunteer-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.volunteer-stats__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.volunteer-stats__eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.volunteer-stats__heading {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.volunteer-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.volunteer-stats__card {
+  min-height: 156px;
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid transparent;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.volunteer-stats__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.12);
+}
+
+.volunteer-stats__card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.volunteer-stats__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.volunteer-stats__title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.volunteer-stats__card-bottom {
+  margin-top: 28px;
+}
+
+.volunteer-stats__value {
+  display: block;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.volunteer-stats__skeleton {
+  display: block;
+  width: 92px;
+  height: 38px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: volunteer-stats-loading 1.2s infinite linear;
+}
+
+.volunteer-stats__card--assigned {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.volunteer-stats__card--completed {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.volunteer-stats__card--points {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.volunteer-stats__card--badges {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.volunteer-stats__icon--assigned {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.volunteer-stats__icon--completed {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.volunteer-stats__icon--points {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.volunteer-stats__icon--badges {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+@keyframes volunteer-stats-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .volunteer-stats__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .volunteer-stats__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .volunteer-stats__card {
+    min-height: 144px;
+  }
+}

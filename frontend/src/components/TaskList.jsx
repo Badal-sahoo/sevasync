@@ -3,7 +3,7 @@ import { getNgoRequests } from "../services/ngoApi";
 import TaskCard from "./TaskCard";
 import { useNavigate } from "react-router-dom";
 
-const TaskList = ({ ngoId }) => {
+const TaskList = ({ ngoId, filter }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,9 +16,26 @@ const TaskList = ({ ngoId }) => {
     try {
       setLoading(true);
       const data = await getNgoRequests(ngoId);
-
+      console.log("FILTER:", filter);
+      console.log("DATA:", data);
       // 🔥 SHOW ALL TASKS (UI handles state)
-      setTasks(data);
+      const filteredTasks = data.filter((task) => {
+        if (filter === "pending") {
+          return task.status === "pending";
+        }
+
+        if (filter === "assigned") {
+          return task.status === "assigned";
+        }
+
+        if (filter === "completed") {
+          return task.status === "completed";
+        }
+
+        return true;
+      });
+
+      setTasks(filteredTasks);
     } catch (err) {
       console.error("Error loading tasks:", err);
     } finally {
@@ -28,7 +45,7 @@ const TaskList = ({ ngoId }) => {
 
   useEffect(() => {
     fetchTasks();
-  }, [ngoId]);
+  }, [ngoId, filter]);
 
   const indexOfLast = currentPage * tasksPerPage;
   const indexOfFirst = indexOfLast - tasksPerPage;
@@ -44,7 +61,11 @@ const TaskList = ({ ngoId }) => {
 
   return (
     <div>
-      <h2 style={{ marginBottom: "20px" }}>All Tasks</h2>
+      <h2 style={{ marginBottom: "20px" }}>
+        {filter === "pending" && "Pending Tasks"}
+        {filter === "assigned" && "Assigned Tasks"}
+        {filter === "completed" && "Completed Tasks"}
+      </h2>
 
       <div style={styles.grid}>
         {currentTasks.length === 0 ? (

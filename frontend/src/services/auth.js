@@ -32,6 +32,7 @@ export const signupUser = async (email, password) => {
 export const logoutUser = async () => {
   try {
     await signOut(auth);
+    localStorage.removeItem("token");
   } catch (error) {
     console.error("Logout Error:", error);
     throw error;

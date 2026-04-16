@@ -27,6 +27,7 @@ const Login = () => {
             if (isLogin) {
                 // --- LOGIN FLOW ---
                 token = await loginUser(email, password);
+                localStorage.setItem("token", token);
                 setMessage('Firebase Success! Syncing clocks...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
 

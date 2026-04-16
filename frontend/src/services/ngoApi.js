@@ -1,61 +1,54 @@
 import axios from "axios";
 
-const BASE_URL = "http://127.0.0.1:8000/api"; // change if deployed
+const BASE_URL = "http://127.0.0.1:8000/api";
 
-// ----------------------
-// NGO DASHBOARD STATS
-// ----------------------
-export const getNgoDashboard = async (ngoId) => {
+// 🔥 CREATE AUTH API INSTANCE
+const API = axios.create({
+  baseURL: BASE_URL,
+});
+
+// 🔥 ADD TOKEN AUTOMATICALLY
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+export const getNgoDashboard = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/ngo/dashboard/`, {
-      params: { ngo_id: ngoId },
-    });
+    const res = await API.get("/ngo/dashboard/");   
     return res.data;
   } catch (err) {
     console.error("Error fetching dashboard stats:", err);
     throw err;
   }
 };
-
-// ----------------------
-// NGO TASK LIST
-// ----------------------
-export const getNgoRequests = async (ngoId, urgency = null) => {
+export const getNgoRequests = async (urgency = null) => {
   try {
-    const res = await axios.get(`${BASE_URL}/ngo/requests/`, {
+    const urgencyMap = {
+      1: "HIGH",
+      2: "MEDIUM",
+      3: "LOW",
+    };
+
+    const res = await API.get("/ngo/requests/", {
       params: {
-        ngo_id: ngoId,
-        ...(urgency && { urgency }),
+        ...(urgency && { urgency: urgencyMap[urgency] }),
       },
     });
+
     return res.data;
   } catch (err) {
     console.error("Error fetching tasks:", err);
     throw err;
   }
 };
-
-// ----------------------
-// MATCH VOLUNTEERS
-// ----------------------
-export const matchVolunteers = async (taskId) => {
-  try {
-    const res = await axios.post(`${BASE_URL}/match/`, {
-      task_id: taskId,
-    });
-    return res.data;
-  } catch (err) {
-    console.error("Error matching volunteers:", err);
-    throw err;
-  }
-};
-
-// ----------------------
-// ASSIGN TASK
-// ----------------------
 export const assignTask = async (taskId, volunteerId) => {
   try {
-    const res = await axios.post(`${BASE_URL}/task/assign/`, {
+    const res = await API.post("/task/assign/", {
       task_id: taskId,
       volunteer_id: volunteerId,
     });
@@ -65,16 +58,41 @@ export const assignTask = async (taskId, volunteerId) => {
     throw err;
   }
 };
-
-// ----------------------
-// HEATMAP DATA
-// ----------------------
+export const matchVolunteers = async (taskId) => {
+  try {
+    const res = await API.post("/match/", {
+      task_id: taskId,
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Error matching volunteers:", err);
+    throw err;
+  }
+};
 export const getHeatmap = async () => {
   try {
-    const res = await axios.get(`${BASE_URL}/heatmap/`);
+    const res = await API.get("/heatmap/");
     return res.data;
   } catch (err) {
     console.error("Error fetching heatmap:", err);
+    throw err;
+  }
+};
+
+export const uploadCSV = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await API.post("/upload/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("Error uploading CSV:", err);
     throw err;
   }
 };
