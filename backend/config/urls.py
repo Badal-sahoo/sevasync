@@ -22,7 +22,7 @@ from apps.users.views import signup, login
 from apps.ngo.views import upload_csv,ngo_dashboard,ngo_requests,ngo_volunteers
 from apps.ai.views import extract_needs,heatmap_api
 from apps.volunteers.views import create_volunteer,volunteer_dashboard,volunteer_points_view ,volunteer_performance,update_volunteer_profile, update_availability,get_volunteer_profile
-from apps.tasks.views import create_task, assign_task, update_status,respond_task,complete_task,get_task_detail
+from apps.tasks.views import create_task, assign_task, update_status,respond_task,get_task_detail,add_update,get_updates,update_taskstatus
 from apps.matching.views import match_volunteers
 print("🔥 MAIN URLS.PY LOADED")
 urlpatterns = [
@@ -44,12 +44,14 @@ urlpatterns = [
     path('api/volunteer/dashboard/', volunteer_dashboard),
     path('api/task/respond/', respond_task),
     path('api/volunteer/points/', volunteer_points_view, name='volunteer-points'),
-    path('api/task/complete/', complete_task),
     path('api/volunteer/performance/', volunteer_performance),
     path('api/volunteer/update/', update_volunteer_profile),
     path('api/volunteer/availability/', update_availability),
     path('api/volunteer/profile/', get_volunteer_profile),
     path('api/volunteer/create/', create_volunteer),
+    path('api/volunteer/addUpdate/', add_update),
+    path('api/volunteer/getUpdate/', get_updates),
+    path('task/update-status/', update_taskstatus),
 
     path('api/task/create/', create_task),
     path('api/task/assign/', assign_task),

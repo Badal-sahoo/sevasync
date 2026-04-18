@@ -47,12 +47,6 @@ export const getVolunteerPerformance = async () => {
   return response.data;
 };
 
-export const completeVolunteerTask = async ({ taskId }) => {
-  const response = await API.post("/task/complete/", {
-    task_id: taskId,
-  });
-  return response.data;
-};
 export const respondToVolunteerTask = async ({ taskId, action }) => {
   const response = await API.post("/task/respond/", {
     task_id: taskId,
@@ -85,3 +79,19 @@ export const updateAvailability = async (availability) => {
 
 // ✅ Export instance
 export default API;
+
+export const addTaskUpdate = async ({ taskId, message }) => {
+  const response = await API.post("/volunteer/addUpdate/", {
+    task_id: taskId,
+    message,
+  });
+  return response.data;
+};
+
+// 📜 Get updates for a task
+export const getTaskUpdates = async (taskId) => {
+  const response = await API.get("/volunteer/getUpdate/", {
+    params: { task_id: taskId },
+  });
+  return response.data;
+};

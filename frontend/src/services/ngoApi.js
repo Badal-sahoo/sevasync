@@ -96,3 +96,10 @@ export const uploadCSV = async (file) => {
     throw err;
   }
 };
+export const completeTaskByNgo = async ({ taskId }) => {
+  const response = await API.post("/task/update-status/", {
+    task_id: taskId,
+    status: "completed",
+  });
+  return response.data;
+};

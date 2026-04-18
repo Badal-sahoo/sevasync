@@ -155,6 +155,7 @@ const VolunteerDashboard = () => {
               tasks={tasks}
               onTaskUpdated={handleTaskUpdate}
               onTaskActionSuccess={fetchAllData}
+              onTaskClick={(taskId) => navigate(`/volunteer/task/${taskId}`)}
             />
           </div>
 

@@ -1,0 +1,104 @@
+/* 🌍 Main container */
+.task-detail {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+/* 🧾 Title */
+.task-detail h2 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #2c3e50;
+}
+
+/* ✏️ Update box */
+.update-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+/* 📝 Textarea */
+.update-box textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+.update-box textarea:focus {
+  border-color: #3498db;
+}
+
+/* 🔘 Button */
+.update-box button {
+  align-self: flex-end;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: #3498db;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.update-box button:hover {
+  background-color: #2980b9;
+}
+
+.update-box button:active {
+  transform: scale(0.97);
+}
+
+/* 📜 Updates list */
+.updates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* 💬 Each update */
+.update-item {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 10px;
+  border-left: 4px solid #3498db;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* 👤 Name */
+.update-item strong {
+  color: #2c3e50;
+}
+
+/* 📝 Message */
+.update-item p {
+  margin: 5px 0;
+  color: #333;
+}
+
+/* ⏱ Time */
+.update-item span {
+  font-size: 12px;
+  color: #777;
+}
+
+/* 📱 Responsive */
+@media (max-width: 600px) {
+  .task-detail {
+    padding: 15px;
+  }
+
+  .update-box button {
+    width: 100%;
+  }
+}

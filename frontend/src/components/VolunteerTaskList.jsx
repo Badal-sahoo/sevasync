@@ -1,7 +1,7 @@
 import VolunteerTaskCard from "./VolunteerTaskCard";
 import "./VolunteerTaskList.css";
 
-const VolunteerTaskList = ({ tasks, onTaskUpdated, onTaskActionSuccess }) => {
+const VolunteerTaskList = ({ tasks, onTaskUpdated, onTaskActionSuccess, onTaskClick }) => {
   return (
     <section className="volunteer-task-list">
       <div className="volunteer-task-list__header">
@@ -25,6 +25,8 @@ const VolunteerTaskList = ({ tasks, onTaskUpdated, onTaskActionSuccess }) => {
               task={task}
               onTaskUpdated={onTaskUpdated}
               onTaskActionSuccess={onTaskActionSuccess}
+              onTaskClick={onTaskClick}
+              onClick={() => onTaskClick(task.task_id)}
             />
           ))}
         </div>

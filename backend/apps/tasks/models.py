@@ -28,6 +28,12 @@ class Assignment(models.Model):
         ('completed', 'Completed'),
     )
 
-    task = models.OneToOneField(Task, on_delete=models.CASCADE)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="assignments")
     volunteer = models.ForeignKey(Volunteer, on_delete=models.CASCADE)
     status = models.CharField(max_length=20, choices=STATUS, default='requested')
+
+class TaskUpdate(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    volunteer = models.ForeignKey(Volunteer, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

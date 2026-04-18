@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from apps.tasks.models import Task
 from apps.volunteers.models import Volunteer
 from .utils import calculate_score
-
+from apps.tasks.models import Assignment
 
 @api_view(['POST'])
 def match_volunteers(request):
@@ -19,8 +19,11 @@ def match_volunteers(request):
         return Response({"error": "Invalid task_id"}, status=400)
 
     # ✅ Only available volunteers
+    busy_volunteers = Assignment.objects.filter(
+        status="accepted"
+    ).values_list("volunteer_id", flat=True)
     volunteers = Volunteer.objects.filter(availability=True)
-
+    volunteers = volunteers.exclude(id__in=busy_volunteers)
     results = []
 
     for v in volunteers:

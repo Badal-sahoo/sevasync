@@ -10,7 +10,8 @@ const TaskCard = ({ task, onFindVolunteers }) => {
   };
 
   return (
-    <div style={styles.card}>
+    <div style={styles.card}
+    onClick={() => onFindVolunteers(task.id)}>
       {/* HEADER */}
       <div style={styles.header}>
         <h3>{type.toUpperCase()}</h3>

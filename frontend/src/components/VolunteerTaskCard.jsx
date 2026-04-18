@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { completeVolunteerTask, respondToVolunteerTask } from "../services/api";
+import { respondToVolunteerTask } from "../services/api";
 import "./VolunteerTaskCard.css";
 
 const getUrgencyClass = (urgency) => {
@@ -10,7 +10,7 @@ const getUrgencyClass = (urgency) => {
   return "volunteer-task-card__urgency--low";
 };
 
-const VolunteerTaskCard = ({ task, onTaskUpdated, onTaskActionSuccess }) => {
+const VolunteerTaskCard = ({ task, onTaskUpdated, onTaskActionSuccess, onTaskClick }) => {
   const [activeAction, setActiveAction] = useState("");
   const [feedback, setFeedback] = useState("");
 
@@ -55,33 +55,6 @@ const VolunteerTaskCard = ({ task, onTaskUpdated, onTaskActionSuccess }) => {
     } catch (error) {
       console.error(`Error trying to ${action} task:`, error);
       setFeedback("⚠️ Failed to update task");
-    } finally {
-      setActiveAction("");
-    }
-  };
-
-  // =========================
-  // ✅ COMPLETE TASK
-  // =========================
-  const handleComplete = async () => {
-    setActiveAction("complete");
-    setFeedback("");
-
-    try {
-      const response = await completeVolunteerTask({
-        taskId,
-      });
-
-      onTaskUpdated?.(taskId, {
-        assignmentStatus: "completed",
-        status: "completed",
-      });
-
-      setFeedback(`🎉 Task completed (+${response?.points_earned ?? 0} pts)`);
-      onTaskActionSuccess?.();
-    } catch (error) {
-      console.error("Error marking task done:", error);
-      setFeedback("⚠️ Could not complete task");
     } finally {
       setActiveAction("");
     }
@@ -140,25 +113,18 @@ const VolunteerTaskCard = ({ task, onTaskUpdated, onTaskActionSuccess }) => {
             </button>
           </>
         )}
-
-        {/* 🔹 MARK COMPLETE */}
+        <button
+          className="volunteer-task-card__button"
+          onClick={() => onTaskClick(taskId)}
+        >
+          View Task →
+        </button>
         {isAccepted && (
           <button
-            className="volunteer-task-card__button volunteer-task-card__button--done"
-            disabled={actionsDisabled}
-            onClick={handleComplete}
+            className="volunteer-task-card__button"
+            onClick={() => onTaskClick(taskId)}
           >
-            {activeAction === "complete" ? "Marking..." : "Mark Done"}
-          </button>
-        )}
-
-        {/* 🔹 COMPLETED */}
-        {isCompleted && (
-          <button
-            className="volunteer-task-card__button volunteer-task-card__button--complete"
-            disabled
-          >
-            Completed
+            View Task →
           </button>
         )}
       </div>

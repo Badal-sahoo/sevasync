@@ -45,15 +45,15 @@ def volunteer_dashboard(request):
     total_assigned = assigned_tasks.count()
 
     completed_tasks = Task.objects.filter(
-        assignment__volunteer=volunteer,
-        status="completed"
-    ).count()
+        assignments__volunteer=volunteer,
+        assignments__status="completed"
+    ).distinct().count()
 
     active_tasks = Task.objects.filter(
-        assignment__volunteer=volunteer,
-        status="assigned"
-    )
-
+        assignments__volunteer=volunteer,
+        assignments__status="accepted"
+    ).distinct()
+ 
     active_list = [
         {
             "task_id": t.id,
