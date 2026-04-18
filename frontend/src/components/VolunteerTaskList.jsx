@@ -14,8 +14,10 @@ const VolunteerTaskList = ({ tasks, onTaskUpdated, onTaskActionSuccess, onTaskCl
       </div>
 
       {tasks.length === 0 ? (
-        <div className="volunteer-task-list__state">
-          No active tasks right now.
+        <div className="volunteer-task-list__state volunteer-task-list__state--notice">
+          🎉 You're all caught up!
+          <br />
+          New tasks will appear here when available.
         </div>
       ) : (
         <div className="volunteer-task-list__grid">

@@ -1,89 +1,65 @@
-import React, { useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
-import VolunteerStats from '../components/VolunteerStats';
-import VolunteerTaskList from '../components/VolunteerTaskList';
-import PointsCard from '../components/PointsCard';
-import PerformanceChart from '../components/PerformanceChart';
-import VolunteerProfileCard from '../components/VolunteerProfileCard';
+import VolunteerStats from "../components/VolunteerStats";
+import VolunteerTaskList from "../components/VolunteerTaskList";
+import PointsCard from "../components/PointsCard";
+import PerformanceChart from "../components/PerformanceChart";
+import VolunteerProfileCard from "../components/VolunteerProfileCard";
+import ToggleAvailability from "../components/ToggleAvailability";
+
 import { getVolunteerDashboard, getVolunteerPoints } from "../services/api";
+import { auth, logoutUser } from "../services/auth";
 
-import { auth, logoutUser } from '../services/auth';
+import "./VolunteerDashboard.css";
 
-import './VolunteerDashboard.css';
-const urgencyOrder = {
-  HIGH: 0,
-  MEDIUM: 1,
-  LOW: 2,
-};
+const urgencyOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+
 const VolunteerDashboard = () => {
   const navigate = useNavigate();
+
   const [authReady, setAuthReady] = useState(false);
   const [tasks, setTasks] = useState([]);
-  const [points, setPoints] = useState(0);
-  // 🔐 Wait for Firebase auth to be ready
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setAuthReady(true);
-
-      if (!user) {
-        navigate('/'); // redirect if not logged in
-      }
+      if (!user) navigate("/");
     });
-
     return () => unsubscribe();
   }, [navigate]);
 
-  // 🚪 Logout
   const handleLogout = async () => {
-    try {
-      localStorage.removeItem("token"); // 🔥 important
-      await logoutUser();
-      navigate('/');
-    } catch (error) {
-      console.error('Logout failed:', error);
-      alert('Failed to log out');
-    }
+    localStorage.removeItem("token");
+    await logoutUser();
+    navigate("/");
   };
+
   const fetchDashboard = async () => {
     const data = await getVolunteerDashboard();
 
     const requested = (data.requested_tasks || []).map((t) => ({
       ...t,
       assignmentStatus: "requested",
-      status: "requested",
     }));
 
     const active = (data.active_tasks || []).map((t) => ({
       ...t,
       assignmentStatus: "accepted",
-      status: "assigned",
     }));
+
     const allTasks = [...requested, ...active].sort(
-    (a, b) =>
-      (urgencyOrder[a.urgency] ?? 99) -
-      (urgencyOrder[b.urgency] ?? 99)
-  );
+      (a, b) =>
+        (urgencyOrder[a.urgency] ?? 99) -
+        (urgencyOrder[b.urgency] ?? 99)
+    );
 
-     setTasks(allTasks);
-  };
-
-  const fetchPoints = async () => {
-    const data = await getVolunteerPoints();
-    setPoints(data.total_points || 0);
-  };
-
-  const fetchAllData = async () => {
-    console.log("🔥 REFRESHING...");
-    await fetchDashboard();
-    await fetchPoints();
+    setTasks(allTasks);
   };
 
   useEffect(() => {
-    if (authReady) {
-      fetchAllData();
-    }
+    if (authReady) fetchDashboard();
   }, [authReady]);
 
   const handleTaskUpdate = (taskId, update) => {
@@ -99,11 +75,11 @@ const VolunteerDashboard = () => {
         .filter(Boolean)
     );
   };
-  // ⏳ Loading state
+
   if (!authReady) {
     return (
       <div className="volunteer-dashboard__notice">
-        Loading volunteer session...
+        Loading dashboard...
       </div>
     );
   }
@@ -116,16 +92,16 @@ const VolunteerDashboard = () => {
         <header className="volunteer-dashboard__header">
           <div>
             <p className="volunteer-dashboard__eyebrow">SevaSync</p>
-            <h1 className="volunteer-dashboard__title">Volunteer Dashboard</h1>
+            <h1 className="volunteer-dashboard__title">
+              Volunteer Dashboard
+            </h1>
             <p className="volunteer-dashboard__subtitle">
-              Track assignments, respond to requests, earn points, and measure your
-              response performance from one place.
+              Manage tasks, track performance, and make an impact 🚀
             </p>
           </div>
 
           <button
             className="volunteer-dashboard__logout"
-            type="button"
             onClick={handleLogout}
           >
             Logout
@@ -134,33 +110,34 @@ const VolunteerDashboard = () => {
 
         {/* 🎯 BANNER */}
         <section className="volunteer-dashboard__banner">
-          <h2 className="volunteer-dashboard__banner-title">
-            Ready for the next response
-          </h2>
-          <p className="volunteer-dashboard__banner-text">
-            Review your current workload, manage task status, and keep an eye on your
-            impact metrics throughout the field.
+          <h2>Stay Ready 💪</h2>
+          <p>
+            Accept tasks quickly, help efficiently, and grow your impact.
           </p>
         </section>
 
         {/* 📊 STATS */}
         <VolunteerStats />
 
-        {/* 🧩 MAIN CONTENT */}
+        {/* 🧩 MAIN GRID */}
         <div className="volunteer-dashboard__content">
 
-          {/* 📋 TASK LIST */}
+          {/* LEFT: TASKS */}
           <div className="volunteer-dashboard__main">
             <VolunteerTaskList
               tasks={tasks}
               onTaskUpdated={handleTaskUpdate}
-              onTaskActionSuccess={fetchAllData}
-              onTaskClick={(taskId) => navigate(`/volunteer/task/${taskId}`)}
+              onTaskActionSuccess={fetchDashboard}
+              onTaskClick={(id) => navigate(`/volunteer/task/${id}`)}
             />
           </div>
 
-          {/* 📦 SIDEBAR */}
+          {/* RIGHT: SIDEBAR */}
           <aside className="volunteer-dashboard__sidebar">
+
+            {/* 🔥 TOGGLE AT TOP */}
+            <ToggleAvailability />
+
             <VolunteerProfileCard />
             <PointsCard />
             <PerformanceChart />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getVolunteerPoints } from "../services/api";
+import "./PointsCard.css";
 
 const PointsCard = ({ refreshKey = 0 }) => {
   const [data, setData] = useState({
@@ -33,33 +34,77 @@ const PointsCard = ({ refreshKey = 0 }) => {
     };
 
     fetchPoints();
-
     return () => (active = false);
   }, [refreshKey]);
 
+  // 🔄 Loading UI
+  if (loading) {
+    return (
+      <div className="points-card">
+        <p className="points-card__eyebrow">Rewards</p>
+        <h3 className="points-card__title">Your Points</h3>
+        <p className="points-card__placeholder">Loading rewards...</p>
+      </div>
+    );
+  }
+
+  const progress = Math.min((data.total_points / 1000) * 100, 100); 
+  // 👉 1000 = next milestone (can change later)
+
   return (
-    <div>
-      <h2>Points</h2>
+    <div className="points-card">
+      {/* 🔹 Header */}
+      <div>
+        <p className="points-card__eyebrow">Rewards</p>
+        <h3 className="points-card__title">Your Points</h3>
+      </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <p>Total Points: {data.total_points}</p>
-          <p>Tasks Completed: {data.tasks_completed}</p>
+      {/* 🔹 Score */}
+      <div className="points-card__score">
+        <span className="points-card__score-label">Total Points</span>
+        <strong className="points-card__score-value">
+          {data.total_points}
+        </strong>
+      </div>
 
-          <h4>Badges:</h4>
-          {data.badges.length === 0 ? (
-            <p>No badges</p>
-          ) : (
-            <ul>
-              {data.badges.map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+      {/* 🔹 Progress */}
+      <div className="points-card__progress-block">
+        <div className="points-card__progress-header">
+          <span>Next Milestone</span>
+          <span>{data.total_points}/1000</span>
+        </div>
+
+        <div className="points-card__progress-track">
+          <div
+            className="points-card__progress-fill"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <div className="points-card__summary">
+          <span>Tasks Completed</span>
+          <strong>{data.tasks_completed}</strong>
+        </div>
+      </div>
+
+      {/* 🔹 Badges */}
+      <div className="points-card__badges">
+        <h4 className="points-card__badges-title">Badges Earned</h4>
+
+        {data.badges.length === 0 ? (
+          <p className="points-card__placeholder">
+            No badges yet — start helping to earn rewards 🚀
+          </p>
+        ) : (
+          <ul className="points-card__badge-list">
+            {data.badges.map((b) => (
+              <li key={b} className="points-card__badge">
+                🏅 {b}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,76 +1,76 @@
 .volunteer-task-list {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .volunteer-task-list__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 4px;
 }
 
 .volunteer-task-list__eyebrow {
-  margin: 0 0 6px;
-  font-size: 0.78rem;
+  margin: 0 0 4px;
+  font-size: 0.73rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #64748b;
+  color: #3b82f6;
 }
 
 .volunteer-task-list__title {
   margin: 0;
   font-size: 1.5rem;
+  font-weight: 800;
   color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
+/* ─── Grid ─────────────────────────────────────────────────────── */
 .volunteer-task-list__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
 }
 
+/* ─── States ────────────────────────────────────────────────────── */
 .volunteer-task-list__state {
-  padding: 20px;
-  border-radius: 20px;
+  padding: 28px 24px;
+  border-radius: 18px;
   background: #ffffff;
-  border: 1px dashed #cbd5e1;
-  color: #475569;
+  border: 1.5px dashed #bfdbfe;
+  color: #3b82f6;
+  font-weight: 600;
+  font-size: 0.97rem;
+  line-height: 1.7;
 }
 
 .volunteer-task-list__state--notice {
-  background: #fff7ed;
-  border-color: #fdba74;
-  color: #9a3412;
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
 }
 
+/* ─── Skeleton ─────────────────────────────────────────────────── */
 .volunteer-task-list__skeleton {
-  min-height: 260px;
-  border-radius: 22px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  min-height: 240px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
   background-size: 200% 100%;
   animation: volunteer-task-list-loading 1.2s infinite linear;
 }
 
 @keyframes volunteer-task-list-loading {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
+/* ─── Responsive ────────────────────────────────────────────────── */
 @media (max-width: 1080px) {
-  .volunteer-task-list__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .volunteer-task-list__grid { grid-template-columns: repeat(2, 1fr); }
 }
-
 @media (max-width: 680px) {
-  .volunteer-task-list__grid {
-    grid-template-columns: 1fr;
-  }
+  .volunteer-task-list__grid { grid-template-columns: 1fr; }
 }

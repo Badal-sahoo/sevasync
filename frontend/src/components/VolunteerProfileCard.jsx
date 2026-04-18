@@ -28,7 +28,6 @@ const VolunteerProfileCard = ({ refreshKey = 0 }) => {
 
       try {
         const data = await getVolunteerProfile();
-
         if (!isActive) return;
 
         const skills = Array.isArray(data?.skills) ? data.skills : [];
@@ -48,10 +47,7 @@ const VolunteerProfileCard = ({ refreshKey = 0 }) => {
     };
 
     fetchProfile();
-
-    return () => {
-      isActive = false;
-    };
+    return () => (isActive = false);
   }, [refreshKey]);
 
   const handleSubmit = async (e) => {
@@ -83,33 +79,79 @@ const VolunteerProfileCard = ({ refreshKey = 0 }) => {
     }
   };
 
+  if (loading) {
+    return (
+      <section className="volunteer-profile-card">
+        <p className="volunteer-profile-card__eyebrow">Profile</p>
+        <h3 className="volunteer-profile-card__title">Your Details</h3>
+        <p className="volunteer-profile-card__message">Loading profile...</p>
+      </section>
+    );
+  }
+
   return (
     <section className="volunteer-profile-card">
-      <h2>{loading ? "Loading..." : profile.name || "Profile"}</h2>
+      {/* 🔹 Header */}
+      <div>
+        <p className="volunteer-profile-card__eyebrow">Profile</p>
+        <h3 className="volunteer-profile-card__title">
+          {profile.name || "Your Profile"}
+        </h3>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Location"
-          value={profile.location}
-          onChange={(e) =>
-            setProfile({ ...profile, location: e.target.value })
-          }
-          disabled={loading || saving}
-        />
+      {/* 🔹 Form */}
+      <form className="volunteer-profile-card__form" onSubmit={handleSubmit}>
+        
+        {/* LOCATION */}
+        <div className="volunteer-profile-card__field">
+          <span>Location</span>
+          <input
+            type="text"
+            className="volunteer-profile-card__input"
+            placeholder="Enter your location"
+            value={profile.location}
+            onChange={(e) =>
+              setProfile({ ...profile, location: e.target.value })
+            }
+            disabled={saving}
+          />
+        </div>
 
-        <textarea
-          value={skillsInput}
-          onChange={(e) => setSkillsInput(e.target.value)}
-          placeholder="skills (comma separated)"
-          disabled={loading || saving}
-        />
+        {/* SKILLS INPUT */}
+        <div className="volunteer-profile-card__field">
+          <span>Skills</span>
+          <textarea
+            className="volunteer-profile-card__textarea"
+            placeholder="e.g. First Aid, Cooking, Logistics"
+            value={skillsInput}
+            onChange={(e) => setSkillsInput(e.target.value)}
+            disabled={saving}
+          />
+        </div>
 
-        <button disabled={saving}>
-          {saving ? "Saving..." : "Update"}
+        {/* SKILL CHIPS (LIVE PREVIEW 🔥) */}
+        {profile.skills.length > 0 && (
+          <div className="volunteer-profile-card__chips">
+            {profile.skills.map((skill, i) => (
+              <span key={i} className="volunteer-profile-card__chip">
+                {skill}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* BUTTON */}
+        <button
+          className="volunteer-profile-card__submit"
+          disabled={saving}
+        >
+          {saving ? "Saving..." : "Update Profile"}
         </button>
 
-        {message && <p>{message}</p>}
+        {/* MESSAGE */}
+        {message && (
+          <p className="volunteer-profile-card__message">{message}</p>
+        )}
       </form>
     </section>
   );

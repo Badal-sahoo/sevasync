@@ -22,16 +22,23 @@ const ToggleAvailability = ({ initialAvailability = true }) => {
 
   return (
     <div className="availability-toggle">
-      <span className="availability-label">
-        {available ? "Available 🟢" : "Unavailable 🔴"}
-      </span>
+      {/* 🔹 Label */}
+      <div className="availability-text">
+        <span className="availability-status">
+          {available ? "Available" : "Unavailable"}
+        </span>
+        <span className="availability-sub">
+          {available ? "You can receive tasks" : "You won’t get new tasks"}
+        </span>
+      </div>
 
+      {/* 🔹 SWITCH */}
       <button
-        className={`toggle-btn ${available ? "on" : "off"}`}
+        className={`switch ${available ? "on" : "off"}`}
         onClick={handleToggle}
         disabled={loading}
       >
-        {loading ? "Updating..." : available ? "Turn OFF" : "Turn ON"}
+        <span className="slider" />
       </button>
     </div>
   );

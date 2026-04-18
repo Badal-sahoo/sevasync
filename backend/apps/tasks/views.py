@@ -5,7 +5,39 @@ from .models import Task, Assignment,TaskUpdate
 from apps.ai.models import Need
 from apps.volunteers.models import Volunteer
 from apps.users.models import User
+from geopy.geocoders import Nominatim
 
+def convert_location(lat, lon):
+    try:
+        geolocator = Nominatim(user_agent="sevasync")
+
+        location = geolocator.reverse(f"{lat}, {lon}", language="en")
+
+        if location and location.raw.get("address"):
+            address = location.raw["address"]
+
+            area = (
+                address.get("suburb")
+                or address.get("neighbourhood")
+                or address.get("village")
+            )
+
+            city = (
+                address.get("city")
+                or address.get("town")
+                or address.get("state")
+            )
+
+            if area and city:
+                return f"{area}, {city}"
+            elif city:
+                return city
+
+        return "Unknown location"
+
+    except Exception as e:
+        print("Location error:", e)
+        return "Unknown location"
 @api_view(['POST'])
 def create_task(request):
     try:
@@ -221,12 +253,17 @@ def get_task_detail(request, task_id):
             accepted_volunteer = data
         elif a.status == "requested":
             requested_volunteers.append(data)
-
+    # 🔥 Convert location
+    try:
+        lat, lon = map(float, task.location.split(","))
+        readable_location = convert_location(lat, lon)
+    except:
+        readable_location = task.location
 
     return Response({
         "task_id": task.id,
         "need_type": task.need_type,
-        "location": task.location,
+        "location":  readable_location,
         "urgency": task.urgency,
         "total_needs": task.total_needs,
         "status": task.status,
