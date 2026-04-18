@@ -37,14 +37,23 @@ const TaskDetail = () => {
   };
 
   const fetchUpdates = async () => {
+  try {
     const data = await getTaskUpdates(id);
-    setUpdates(data);
-  };
+
+    setUpdates(data.updates || []);                // ✅ FIX
+    setVolunteers(data.recommended_volunteers || []); // ✅ reuse
+    // optionally:
+    // setBestMatch(data.best_match)
+
+  } catch (err) {
+    console.error(err);
+    setUpdates([]); // safety fallback
+  }
+};
 
   useEffect(() => {
     const load = async () => {
       await fetchTask();
-      await fetchMatches();
       await fetchUpdates();
       setLoading(false);
     };

@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
 from apps.ngo.models import NGOData
 from .models import Need
 from utils.ai_client import extract_needs_from_text
@@ -47,8 +48,26 @@ def extract_needs(request):
     })
 
 
-
 @api_view(['GET'])
 def heatmap_api(request):
-    data = generate_heatmap_data()
-    return Response(data)
+    # 🔹 1. Extract the user making the request
+    current_user = request.user
+
+    # 🔹 2. Security Gate: Ensure only NGOs can access the city-wide heatmap
+    if current_user.role != 'NGO':
+        return Response(
+            {"error": "Unauthorized. Only NGOs can view heatmap data."}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    try:
+        # 🔹 3. Pass the NGO (current_user) to the function we fixed earlier
+        data = generate_heatmap_data(ngo=current_user)
+        return Response(data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"🔥 Heatmap API Error: {e}")
+        return Response(
+            {"error": "Failed to generate heatmap data."}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 from .models import Task, Assignment,TaskUpdate
 from apps.ai.models import Need
 from apps.volunteers.models import Volunteer
@@ -8,6 +9,7 @@ from apps.users.models import User
 import ssl
 import certifi
 from geopy.geocoders import Nominatim
+from apps.matching.utils import get_matched_volunteers
 
 def convert_location(lat, lon):
     try:
@@ -317,24 +319,61 @@ def add_update(request):
 def get_updates(request):
     task_id = request.GET.get("task_id")
 
+    # 🔴 Validate input
     if not task_id:
-        return Response({"error": "task_id required"}, status=400)
+        return Response(
+            {"error": "task_id required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-    updates = TaskUpdate.objects.filter(
-        task_id=task_id
-    ).select_related("volunteer")
+    # 🔴 Validate task
+    try:
+        task = Task.objects.get(id=task_id)
+    except Task.DoesNotExist:
+        return Response(
+            {"error": "Invalid task_id"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
-    data = []
+    # 🔹 1. Fetch updates (messages)
+    updates = (
+        TaskUpdate.objects
+        .filter(task_id=task_id)
+        .select_related("volunteer")
+        .order_by("-created_at")[:50]   # limit for performance
+    )
+
+    updates_data = []
     for u in updates:
-        data.append({
-            "name": getattr(u.volunteer, "name", ""),
+        updates_data.append({
+            "type": "message",
+            "name": u.volunteer.user.name if u.volunteer and u.volunteer.user else "Anonymous" ,
             "message": u.message,
-            "time": u.created_at
+            "time": u.created_at.strftime("%Y-%m-%d %H:%M:%S")
         })
 
-    return Response(data)
+    # 🔹 2. Get matching volunteers (REUSED LOGIC)
+    try:
+        results = get_matched_volunteers(task)
+    except Exception as e:
+        print("🔥 Matching Error:", e)
+        results = []
 
-from rest_framework.permissions import IsAuthenticated
+    # 🔹 3. Final response
+    return Response({
+        "task": {
+            "task_id": task.id,
+            "type": task.need_type,
+            "location": task.location,
+            "urgency": task.urgency,
+            "people": task.total_needs
+        },
+        "updates": updates_data,
+        "recommended_volunteers": results[:5],
+        "best_match": results[0] if results else None,
+        "total_candidates": len(results)
+    }, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 def update_taskstatus(request):

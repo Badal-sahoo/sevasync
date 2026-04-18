@@ -12,7 +12,7 @@ const VolunteerTaskDetail = () => {
   const fetchUpdates = async () => {
     try {
       const data = await getTaskUpdates(taskId);
-      setUpdates(data);
+      setUpdates(data.updates || []);
     } catch (err) {
       console.error(err);
     }

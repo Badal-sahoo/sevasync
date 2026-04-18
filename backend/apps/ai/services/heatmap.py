@@ -1,30 +1,25 @@
 from apps.ai.models import Need
 
-def generate_heatmap_data():
-    needs = Need.objects.exclude(latitude=None).exclude(longitude=None)
+def generate_heatmap_data(ngo):
+    # 🔹 Filter by the specific NGO to prevent data leakage
+    needs = Need.objects.filter(ngo=ngo).exclude(latitude=None).exclude(longitude=None)
 
-    heatmap = {}
+    result = []
 
     for need in needs:
-        key = (round(need.latitude, 3), round(need.longitude, 3))
-
-        if key not in heatmap:
-            heatmap[key] = 0
-
+        # Determine the weight/intensity of the need
         weight = 1
         if need.need_type == "medical":
             weight = 3
         elif need.need_type in ["food", "water"]:
             weight = 2
 
-        heatmap[key] += weight
-
-    result = []
-    for (lat, lng), intensity in heatmap.items():
+        # 🔹 Pass exact coordinates to the frontend instead of grouping on the backend.
+        # This allows your React dashboard to render a fluid, high-resolution heatmap.
         result.append({
-            "lat": lat,
-            "lng": lng,
-            "intensity": intensity
+            "lat": float(need.latitude),
+            "lng": float(need.longitude),
+            "intensity": weight
         })
 
     return result
