@@ -51,7 +51,7 @@ urlpatterns = [
     path('api/volunteer/create/', create_volunteer),
     path('api/volunteer/addUpdate/', add_update),
     path('api/volunteer/getUpdate/', get_updates),
-    path('task/update-status/', update_taskstatus),
+    path('api/task/update-status/', update_taskstatus),
 
     path('api/task/create/', create_task),
     path('api/task/assign/', assign_task),

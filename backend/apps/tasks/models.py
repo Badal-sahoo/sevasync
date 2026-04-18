@@ -14,6 +14,7 @@ class Task(models.Model):
     ngo = models.ForeignKey(User, on_delete=models.CASCADE)
     need_type = models.CharField(max_length=50)  # 🔥 ADD THIS
     location = models.CharField(max_length=100)
+    location_name=models.CharField(max_length=250,null=True,blank=True)
     urgency = models.CharField(max_length=20)
     total_needs = models.IntegerField(default=1)  # 🔥 ADD THIS
 

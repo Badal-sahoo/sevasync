@@ -5,11 +5,18 @@ from .models import Task, Assignment,TaskUpdate
 from apps.ai.models import Need
 from apps.volunteers.models import Volunteer
 from apps.users.models import User
+import ssl
+import certifi
 from geopy.geocoders import Nominatim
 
 def convert_location(lat, lon):
     try:
-        geolocator = Nominatim(user_agent="sevasync")
+        ctx = ssl.create_default_context(cafile=certifi.where())
+
+        geolocator = Nominatim(
+            user_agent="sevasync",
+            ssl_context=ctx
+        )
 
         location = geolocator.reverse(f"{lat}, {lon}", language="en")
 
@@ -37,7 +44,9 @@ def convert_location(lat, lon):
 
     except Exception as e:
         print("Location error:", e)
-        return "Unknown location"
+        return None
+
+
 @api_view(['POST'])
 def create_task(request):
     try:
@@ -49,11 +58,22 @@ def create_task(request):
 
         need = Need.objects.get(id=need_id)
 
+        raw_location = request.data.get('location')  # "lat,lng"
+
+        location_name = None
+
+        try:
+            lat, lon = map(float, raw_location.split(","))
+            location_name = convert_location(lat, lon)
+        except:
+            pass
+
         task = Task.objects.create(
-            ngo=user,   # 🔥 FIXED (no ngo_id needed)
+            ngo=user,
             need=need,
             title=request.data.get('title'),
-            location=request.data.get('location'),
+            location=raw_location,
+            location_name=location_name,  
             urgency=request.data.get('urgency')
         )
 
@@ -253,17 +273,12 @@ def get_task_detail(request, task_id):
             accepted_volunteer = data
         elif a.status == "requested":
             requested_volunteers.append(data)
-    # 🔥 Convert location
-    try:
-        lat, lon = map(float, task.location.split(","))
-        readable_location = convert_location(lat, lon)
-    except:
-        readable_location = task.location
+
 
     return Response({
         "task_id": task.id,
         "need_type": task.need_type,
-        "location":  readable_location,
+        "location": task.location_name if task.location_name else task.location,
         "urgency": task.urgency,
         "total_needs": task.total_needs,
         "status": task.status,
