@@ -120,6 +120,7 @@ def ngo_requests(request):
             "id": t.id,
             "type": t.need_type,
             "location": t.location,
+            "location_name": t.location_name,
             "urgency": t.urgency,
             "total_people": t.total_needs,
             "status": t.status,

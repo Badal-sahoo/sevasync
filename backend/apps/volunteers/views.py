@@ -44,10 +44,7 @@ def volunteer_dashboard(request):
     assigned_tasks = Assignment.objects.filter(volunteer=volunteer)
     total_assigned = assigned_tasks.count()
 
-    completed_tasks = Task.objects.filter(
-        assignments__volunteer=volunteer,
-        assignments__status="completed"
-    ).distinct().count()
+    completed_tasks = volunteer.tasks_completed
 
     active_tasks = Task.objects.filter(
         assignments__volunteer=volunteer,
@@ -59,8 +56,10 @@ def volunteer_dashboard(request):
             "task_id": t.id,
             "type": t.need_type,
             "location": t.location,
+            "location_name": t.location_name,   # ✅ ADD
             "urgency": t.urgency,
-            "people": t.total_needs
+            "people": t.total_needs,
+            "status": "accepted"                # ✅ ADD
         }
         for t in active_tasks
     ]
@@ -75,8 +74,10 @@ def volunteer_dashboard(request):
             "task_id": a.task.id,
             "type": a.task.need_type,
             "location": a.task.location,
+            "location_name": a.task.location_name,  # ✅ ADD
             "urgency": a.task.urgency,
-            "people": a.task.total_needs
+            "people": a.task.total_needs,
+            "status": a.status                     # ✅ CRITICAL
         }
         for a in requested_tasks
     ]

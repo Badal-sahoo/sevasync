@@ -2,13 +2,21 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { addTaskUpdate, getTaskUpdates } from "../services/api";
 import "./VolunteerTaskDetail.css";
+import { getTaskById } from "../services/ngoApi";
 
 const VolunteerTaskDetail = () => {
   const { taskId } = useParams();
-
+  const [task, setTask] = useState(null);
   const [updates, setUpdates] = useState([]);
   const [message, setMessage] = useState("");
-
+ const fetchTask = async () => {
+  try {
+    const data = await getTaskById(taskId);
+    setTask(data);
+  } catch (err) {
+    console.error(err);
+  }
+};
   const fetchUpdates = async () => {
     try {
       const data = await getTaskUpdates(taskId);
@@ -19,6 +27,7 @@ const VolunteerTaskDetail = () => {
   };
 
   useEffect(() => {
+    fetchTask();      // ✅ ADD THIS
     fetchUpdates();
   }, [taskId]);
 
@@ -37,7 +46,19 @@ const VolunteerTaskDetail = () => {
   return (
     <div className="task-detail">
       <h2>Task Progress</h2>
+{task && (
+  <div className="task-header">
+    <h2>{task.need_type?.toUpperCase()}</h2>
 
+    <p><strong>📍 Location:</strong> {task.location_name || task.location}</p>
+
+    <p><strong>⚡ Urgency:</strong> {task.urgency}</p>
+
+    <p><strong>👥 People:</strong> {task.total_people}</p>
+
+    <p><strong>Status:</strong> {task.status}</p>
+  </div>
+)}
       {/* 📝 Add update */}
       <div className="update-box">
         <textarea

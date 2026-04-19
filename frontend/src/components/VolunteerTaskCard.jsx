@@ -81,7 +81,9 @@ const VolunteerTaskCard = ({
             </svg>
             Location
           </span>
-          <strong>{task.location || "Unknown"}</strong>
+          <strong>
+            {task.location_name || task.location || "Unknown"}
+          </strong>
         </div>
 
         <div className="volunteer-task-card__meta-item">

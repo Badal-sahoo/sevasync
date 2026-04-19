@@ -59,7 +59,9 @@ const TaskCard = ({ task, onFindVolunteers }) => {
       <div style={styles.body}>
         <div style={styles.infoRow}>
           <span style={styles.infoIcon}>📍</span>
-          <span style={styles.infoText}>{task.location}</span>
+          <span style={styles.infoText}>
+            {task.location_name || task.location}
+          </span>
         </div>
         <div style={styles.infoRow}>
           <span style={styles.infoIcon}>👥</span>

@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import VolunteerStats from "../components/VolunteerStats";
 import VolunteerTaskList from "../components/VolunteerTaskList";
 import PointsCard from "../components/PointsCard";
-import PerformanceChart from "../components/PerformanceChart";
 import VolunteerProfileCard from "../components/VolunteerProfileCard";
 import ToggleAvailability from "../components/ToggleAvailability";
 
@@ -127,7 +126,9 @@ const VolunteerDashboard = () => {
             <VolunteerTaskList
               tasks={tasks}
               onTaskUpdated={handleTaskUpdate}
-              onTaskActionSuccess={fetchDashboard}
+              onTaskActionSuccess={() => {
+                fetchDashboard();
+              }}
               onTaskClick={(id) => navigate(`/volunteer/task/${id}`)}
             />
           </div>
@@ -140,7 +141,6 @@ const VolunteerDashboard = () => {
 
             <VolunteerProfileCard />
             <PointsCard />
-            <PerformanceChart />
           </aside>
 
         </div>

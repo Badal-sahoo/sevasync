@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
-import { matchVolunteers, assignTask, completeTaskByNgo } from "../services/ngoApi";
+import { matchVolunteers, assignTask, completeTaskByNgo, getTaskById } from "../services/ngoApi";
 import { getTaskUpdates } from "../services/api";
 
 const TaskDetail = () => {
@@ -15,13 +14,13 @@ const TaskDetail = () => {
 
   const isRequested = task && task.assignment_status === "requested";
   const isAssigned = task && task.status === "assigned";
-  const alreadyRequested = task?.assignment_status === "requested";
+  const alreadyRequested = task?.status === "requested";
   const isDisabled = sending || alreadyRequested;
 
   const fetchTask = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/api/task/${id}/`);
-      setTask(res.data);
+      const data = await getTaskById(id);
+      setTask(data);
     } catch (err) {
       console.error(err);
     }

@@ -77,7 +77,12 @@ def run_pipeline_bulk(needs_queryset):
         avg_lat = sum(n.latitude for n in cluster) / len(cluster)
         avg_lon = sum(n.longitude for n in cluster) / len(cluster)
         location_key = f"{round(avg_lat, 2)},{round(avg_lon, 2)}"
+        location_names = [n.location_text for n in cluster if n.location_text]
 
+        location_name = (
+            max(set(location_names), key=location_names.count)
+            if location_names else "Unknown"
+        )
         # Stage Create / Update tasks IN MEMORY
         for need_type, needs_list in grouped.items():
             total = len(needs_list)
@@ -99,6 +104,7 @@ def run_pipeline_bulk(needs_queryset):
                     ngo=current_ngo,
                     need_type=need_type,
                     location=location_key,
+                    location_name=location_name,
                     urgency=final_severity,
                     total_needs=total,
                     status="pending"
@@ -135,6 +141,7 @@ def process_single_need_in_memory(need, task_lookup, tasks_to_create, tasks_to_u
             ngo=need.ngo,
             need_type=need.need_type,
             location=location_key,
+            location_name = need.location_text or "Unknown",
             urgency="LOW",
             total_needs=1,
             status="pending"

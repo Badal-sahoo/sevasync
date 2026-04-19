@@ -1,11 +1,9 @@
 import axios from "axios";
 
-const BASE_URL = "http://127.0.0.1:8000/api";
-
-// 🔥 CREATE AUTH API INSTANCE
 const API = axios.create({
-  baseURL: BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL, // should already include /api
 });
+
 
 // 🔥 ADD TOKEN AUTOMATICALLY
 API.interceptors.request.use((config) => {
@@ -102,4 +100,13 @@ export const completeTaskByNgo = async ({ taskId }) => {
     status: "completed",
   });
   return response.data;
+};
+export const getTaskById = async (taskId) => {
+  try {
+    const res = await API.get(`/task/${taskId}/`);
+    return res.data;
+  } catch (err) {
+    console.error("Error fetching task:", err);
+    throw err;
+  }
 };
