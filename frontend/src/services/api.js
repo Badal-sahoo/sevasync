@@ -1,14 +1,17 @@
 import axios from "axios";
 
-// ✅ Create axios instance
+// =====================================
+// 🔹 AXIOS INSTANCE (SINGLE SOURCE)
+// =====================================
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // should already include /api
+  baseURL: import.meta.env.VITE_API_BASE_URL, // must include /api
 });
 
-// 🔥 Attach Firebase token to EVERY request
+// =====================================
+// 🔐 ATTACH TOKEN AUTOMATICALLY
+// =====================================
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-
 
   if (token) {
     config.headers = config.headers ?? {};
@@ -18,80 +21,165 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+// =====================================
+// 🏢 NGO APIs
+// =====================================
 
-// ==============================
-// 🙋 VOLUNTEER APIs (FINAL)
-// ==============================
+// 📊 Dashboard
+export const getNgoDashboard = async () => {
+  const res = await API.get("/ngo/dashboard/");
+  return res.data;
+};
+
+// 📋 NGO Requests
+export const getNgoRequests = async (urgency = null) => {
+  const urgencyMap = {
+    1: "HIGH",
+    2: "MEDIUM",
+    3: "LOW",
+  };
+
+  const res = await API.get("/ngo/requests/", {
+    params: {
+      ...(urgency && { urgency: urgencyMap[urgency] }),
+    },
+  });
+
+  return res.data;
+};
+
+// 📌 Assign Task
+export const assignTask = async (taskId, volunteerId) => {
+  const res = await API.post("/task/assign/", {
+    task_id: taskId,
+    volunteer_id: volunteerId,
+  });
+
+  return res.data;
+};
+
+// 🤖 Match Volunteers
+export const matchVolunteers = async (taskId) => {
+  const res = await API.post("/match/", {
+    task_id: taskId,
+  });
+
+  return res.data;
+};
+
+// 🗺️ Heatmap
+export const getHeatmap = async () => {
+  const res = await API.get("/heatmap/");
+  return res.data;
+};
+
+// 📁 Upload CSV
+export const uploadCSV = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await API.post("/upload/", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return res.data;
+};
+
+// ✅ Complete Task (NGO)
+export const completeTaskByNgo = async (taskId) => {
+  const res = await API.post("/task/update-status/", {
+    task_id: taskId,
+    status: "completed",
+  });
+
+  return res.data;
+};
+
+// 🔍 Get Task by ID
+export const getTaskById = async (taskId) => {
+  const res = await API.get(`/task/${taskId}/`);
+  return res.data;
+};
+
+// =====================================
+// 🙋 VOLUNTEER APIs
+// =====================================
 
 // 📊 Dashboard
 export const getVolunteerDashboard = async () => {
-  const response = await API.get("/volunteer/dashboard/");
-  return response.data;
+  const res = await API.get("/volunteer/dashboard/");
+  return res.data;
 };
 
 // 👤 Profile
 export const getVolunteerProfile = async () => {
-  const response = await API.get("/volunteer/profile/");
-  return response.data;
+  const res = await API.get("/volunteer/profile/");
+  return res.data;
 };
 
 // 🏆 Points
 export const getVolunteerPoints = async () => {
-  const response = await API.get("/volunteer/points/");
-  return response.data;
+  const res = await API.get("/volunteer/points/");
+  return res.data;
 };
 
 // 📈 Performance
 export const getVolunteerPerformance = async () => {
-  const response = await API.get("/volunteer/performance/");
-  return response.data;
+  const res = await API.get("/volunteer/performance/");
+  return res.data;
 };
 
-export const respondToVolunteerTask = async ({ taskId, action }) => {
-  const response = await API.post("/task/respond/", {
+// ✅ Accept / Reject Task
+export const respondToVolunteerTask = async (taskId, action) => {
+  const res = await API.post("/task/respond/", {
     task_id: taskId,
     action: action, // "accept" or "reject"
   });
 
-  return response.data;
+  return res.data;
 };
-// ==============================
-// ✏️ OPTIONAL (keep if using)
-// ==============================
 
-// Update profile
-export const updateVolunteerProfile = async ({ skills, location }) => {
-  const response = await API.patch("/volunteer/update/", {
+// ✏️ Update Profile
+export const updateVolunteerProfile = async (skills, location) => {
+  const res = await API.patch("/volunteer/update/", {
     skills,
     location,
   });
-  return response.data;
+
+  return res.data;
 };
 
-// Toggle availability
+// 🔄 Availability Toggle
 export const updateAvailability = async (availability) => {
-  const response = await API.patch("/volunteer/availability/", {
+  const res = await API.patch("/volunteer/availability/", {
     availability,
   });
-  return response.data;
+
+  return res.data;
 };
 
-
-// ✅ Export instance
-export default API;
-
-export const addTaskUpdate = async ({ taskId, message }) => {
-  const response = await API.post("/volunteer/addUpdate/", {
+// 💬 Add Task Update
+export const addTaskUpdate = async (taskId, message) => {
+  const res = await API.post("/volunteer/addUpdate/", {
     task_id: taskId,
     message,
   });
-  return response.data;
+
+  return res.data;
 };
 
-// 📜 Get updates for a task
+// 📜 Get Task Updates
 export const getTaskUpdates = async (taskId) => {
-  const response = await API.get("/volunteer/getUpdate/", {
+  const res = await API.get("/volunteer/getUpdate/", {
     params: { task_id: taskId },
   });
-  return response.data;
+
+  return res.data;
 };
+
+// =====================================
+// 🔹 EXPORT DEFAULT
+// =====================================
+export default API;

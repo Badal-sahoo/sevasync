@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getNgoRequests } from "../services/ngoApi";
+import { getNgoRequests } from "../services/api";
 import TaskCard from "./TaskCard";
 import { useNavigate } from "react-router-dom";
 

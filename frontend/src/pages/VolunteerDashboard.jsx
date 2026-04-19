@@ -8,7 +8,7 @@ import PointsCard from "../components/PointsCard";
 import VolunteerProfileCard from "../components/VolunteerProfileCard";
 import ToggleAvailability from "../components/ToggleAvailability";
 
-import { getVolunteerDashboard, getVolunteerPoints } from "../services/api";
+import { getVolunteerDashboard } from "../services/api";
 import { auth, logoutUser } from "../services/auth";
 
 import "./VolunteerDashboard.css";

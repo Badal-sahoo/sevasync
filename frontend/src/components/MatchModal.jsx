@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { matchVolunteers, assignTask } from "../services/ngoApi";
+import { matchVolunteers, assignTask } from "../services/api";
 
 const MatchModal = ({ taskId, onClose, onAssigned }) => {
   const [data, setData] = useState(null);
