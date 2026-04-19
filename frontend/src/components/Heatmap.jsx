@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getHeatmap } from "../services/ngoApi";
+import { getHeatmap } from "../services/api";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 

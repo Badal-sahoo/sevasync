@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { addTaskUpdate, getTaskUpdates } from "../services/api";
 import "./VolunteerTaskDetail.css";
-import { getTaskById } from "../services/ngoApi";
+import { getTaskById } from "../services/api";
 
 const VolunteerTaskDetail = () => {
   const { taskId } = useParams();

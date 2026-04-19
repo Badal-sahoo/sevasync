@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { matchVolunteers, assignTask, completeTaskByNgo, getTaskById } from "../services/ngoApi";
+import { matchVolunteers, assignTask, completeTaskByNgo, getTaskById } from "../services/api";
 import { getTaskUpdates } from "../services/api";
 
 const TaskDetail = () => {

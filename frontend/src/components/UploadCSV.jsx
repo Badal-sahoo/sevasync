@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { uploadCSV } from "../services/ngoApi";
+import { uploadCSV } from "../services/api";
 
 const UploadCSV = () => {
   const [file, setFile] = useState(null);

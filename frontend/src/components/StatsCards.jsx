@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getNgoDashboard } from "../services/ngoApi";
+import { getNgoDashboard } from "../services/api";
 
 const StatsCards = ({ ngoId }) => {
   const [stats, setStats] = useState(null);
