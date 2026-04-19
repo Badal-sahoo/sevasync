@@ -5,14 +5,15 @@ from utils.problem_mapper import extract_need_types
 from utils.location import get_lat_long
 from apps.ai.services.pipeline import run_pipeline_bulk
 import io
+
 def process_csv_file(file, ngo_id):
     processed_count = 0
     batch = []
     BATCH_SIZE = 100
 
     try:
-        # 🔥 Convert file to readable stream
-        decoded_file = file.read().decode('utf-8')
+        # ✅ READ FILE FROM MEMORY (CORRECT WAY)
+        decoded_file = file.read().decode('utf-8', errors='ignore')
         reader = csv.DictReader(io.StringIO(decoded_file))
 
         for row in reader:
@@ -49,7 +50,7 @@ def process_csv_file(file, ngo_id):
         if batch:
             Need.objects.bulk_create(batch)
 
-        # 🔥 RUN PIPELINE ONCE
+        # ✅ RUN PIPELINE ONCE
         all_needs = Need.objects.filter(ngo_id=ngo_id)\
             .exclude(latitude=None).exclude(longitude=None)
 
