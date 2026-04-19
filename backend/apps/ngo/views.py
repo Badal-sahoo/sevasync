@@ -15,22 +15,15 @@ def upload_csv(request):
         if not request.user or not request.user.is_authenticated:
             return Response({"error": "Authentication required"}, status=401)
 
-        if 'file' not in request.FILES:
+        file = request.FILES.get('file')
+
+        if not file:
             return Response({"error": "CSV file required"}, status=400)
 
         user = request.user
 
-        file = request.FILES['file']
-
-        _, ext = os.path.splitext(file.name)
-        safe_filename = f"{uuid.uuid4()}{ext}"
-        file_path = os.path.join(settings.MEDIA_ROOT, safe_filename)
-
-        with open(file_path, 'wb+') as destination:
-            for chunk in file.chunks():
-                destination.write(chunk)
-
-        processed_count = process_csv_file(file_path, user.id)
+        # 🔥 DIRECTLY PROCESS FILE (NO SAVING)
+        processed_count = process_csv_file(file, user.id)
 
         return Response({
             "message": f"Successfully mapped {processed_count} needs.",
@@ -38,7 +31,7 @@ def upload_csv(request):
         })
 
     except Exception as e:
-        print("🔥 UPLOAD ERROR:", str(e))  # 👈 VERY IMPORTANT
+        print("🔥 UPLOAD ERROR:", str(e))
         return Response({"error": str(e)}, status=500)
     
 
