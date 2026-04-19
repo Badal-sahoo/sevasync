@@ -9,3 +9,4 @@ gunicorn
 numpy
 scikit-learn
 google-genai
+geopy
