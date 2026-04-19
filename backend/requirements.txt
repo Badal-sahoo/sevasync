@@ -8,3 +8,4 @@ firebase-admin
 gunicorn
 numpy
 scikit-learn
+google-genai
