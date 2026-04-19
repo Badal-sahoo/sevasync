@@ -7,8 +7,13 @@ load_dotenv()
 
 # Initialize Firebase app only once
 if not firebase_admin._apps:
-    cred_path = os.getenv('FIREBASE_CREDENTIALS')
-    cred = credentials.Certificate(cred_path)
+    cred = credentials.Certificate({
+        "type": "service_account",
+        "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+        "private_key": os.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+        "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+        "token_uri": os.getenv("FIREBASE_TOKEN_URI"),
+    })
     firebase_admin.initialize_app(cred)
 
 def verify_firebase_token(token):
