@@ -12,20 +12,17 @@ class FirebaseAuthentication(BaseAuthentication):
         #print("HEADER:", auth_header)
 
         if not auth_header:
-            print("❌ No auth header")
             return None
 
         try:
             token = auth_header.split(' ')[1]
         except IndexError:
-            print("❌ Token format error")
             raise AuthenticationFailed("Invalid token format")
 
         decoded_token = verify_firebase_token(token)
         #print("DECODED:", decoded_token)
 
         if not decoded_token:
-            print("❌ Token invalid")
             raise AuthenticationFailed("Invalid Firebase token")
 
         email = decoded_token.get("email")
@@ -33,9 +30,7 @@ class FirebaseAuthentication(BaseAuthentication):
 
         try:
             user = User.objects.get(email=email)
-            print("✅ USER FOUND:", user.email)
         except User.DoesNotExist:
-            print("❌ USER NOT FOUND IN DB")
             raise AuthenticationFailed("User not found")
 
         return (user, None)
