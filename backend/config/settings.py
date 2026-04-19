@@ -155,3 +155,5 @@ REST_FRAMEWORK = {
         'utils.firebase_authentication.FirebaseAuthentication',
     ),
 }
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
