@@ -35,7 +35,7 @@ const VolunteerTaskDetail = () => {
     if (!message.trim()) return;
 
     try {
-      await addTaskUpdate({ taskId, message });
+      await addTaskUpdate( taskId, message );
       setMessage("");
       fetchUpdates(); // refresh
     } catch (err) {

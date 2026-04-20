@@ -2,15 +2,32 @@ import math
 import os
 import re
 import json
+import signal
 from google import genai
 
 
-# 🔹 Base Score (Skill + Urgency)
+# ==============================
+# 🔹 CONFIG
+# ==============================
+API_KEY = os.getenv("AI_API_KEY")
+USE_GEMINI = os.getenv("USE_GEMINI", "true") == "true"
+
+client = None
+if API_KEY and USE_GEMINI:
+    client = genai.Client(api_key=API_KEY)
+
+
+# ==============================
+# 🔹 BASE SCORE
+# ==============================
 def calculate_score(task, volunteer):
     score = 0
 
     task_needs = task.need_type.lower()
-    volunteer_skills = volunteer.skills.lower() if volunteer.skills else ""
+    if isinstance(volunteer.skills, list):
+        volunteer_skills = " ".join(volunteer.skills).lower()
+    else:
+        volunteer_skills = str(volunteer.skills).lower()
 
     # Skill Matching (40)
     if task_needs in volunteer_skills:
@@ -30,7 +47,9 @@ def calculate_score(task, volunteer):
     return score
 
 
-# 🔹 Distance Calculation (Haversine)
+# ==============================
+# 🔹 DISTANCE (Haversine)
+# ==============================
 def calculate_distance(lat1, lon1, lat2, lon2):
     R = 6371  # KM
 
@@ -45,7 +64,9 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return R * c
 
 
-# 🔹 Performance Score (20)
+# ==============================
+# 🔹 PERFORMANCE SCORE
+# ==============================
 def get_performance_score(volunteer):
     from apps.tasks.models import Assignment
 
@@ -60,7 +81,9 @@ def get_performance_score(volunteer):
     return (completed / total) * 20
 
 
-# 🔹 Distance Score (20)
+# ==============================
+# 🔹 DISTANCE SCORE
+# ==============================
 def get_distance_score(distance):
     if distance <= 2:
         return 20
@@ -72,14 +95,9 @@ def get_distance_score(distance):
         return 0
 
 
-# 🔹 Gemini Client (safe init)
-client = None
-API_KEY = os.getenv("AI_API_KEY")
-if API_KEY:
-    client = genai.Client(api_key=API_KEY)
-
-
-# 🔹 Gemini Refinement (SAFE)
+# ==============================
+# 🔹 GEMINI REFINEMENT (SAFE)
+# ==============================
 def gemini_refine_scores(task, candidates):
     if not client:
         return None
@@ -113,10 +131,19 @@ Return ONLY a JSON list like:
 Do not add explanation.
 """
 
+        # 🔥 TIMEOUT PROTECTION (3 sec max)
+        def timeout_handler(signum, frame):
+            raise Exception("Gemini timeout")
+
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(3)
+
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=prompt
         )
+
+        signal.alarm(0)
 
         text = response.text.strip()
 
@@ -132,7 +159,9 @@ Do not add explanation.
         return None
 
 
+# ==============================
 # 🔹 MAIN MATCHING FUNCTION
+# ==============================
 def get_matched_volunteers(task):
     from apps.volunteers.models import Volunteer
     from apps.tasks.models import Assignment
@@ -185,26 +214,28 @@ def get_matched_volunteers(task):
             "score": round(final_score, 2)
         })
 
-    # ❗ Always sort FIRST (important)
+    # ✅ Always sort FIRST
     results.sort(key=lambda x: x["score"], reverse=True)
 
     # 🔹 Top candidates for AI
     top_candidates = results[:5]
 
-    # 🔹 Gemini refinement
-    refined = gemini_refine_scores(task, top_candidates)
+    # 🔥 Gemini (safe call)
+    refined = None
+    if USE_GEMINI:
+        refined = gemini_refine_scores(task, top_candidates)
 
-    if refined:
+    # 🔹 Apply AI scores if available
+    if refined and isinstance(refined, list):
         name_to_score = {r["name"]: r["score"] for r in refined}
 
         for v in results:
             if v["name"] in name_to_score:
                 v["score"] = name_to_score[v["name"]]
 
-        # 🔹 Re-sort after AI
         results.sort(key=lambda x: x["score"], reverse=True)
     else:
-        print("Using base scoring (Gemini failed or unavailable)")
+        print("Using base scoring (Gemini failed or skipped)")
 
-    # 🔹 Final output limit
+    # 🔹 Final output
     return results[:10]
