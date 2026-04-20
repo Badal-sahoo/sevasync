@@ -6,6 +6,9 @@ from .models import Volunteer
 from .serializers import VolunteerSerializer
 from apps.tasks.models import Task, Assignment
 
+from geopy.geocoders import Nominatim
+import ssl
+import certifi
 
 # ==============================
 # 🆕 CREATE VOLUNTEER
@@ -205,6 +208,8 @@ def volunteer_performance(request):
 # ==============================
 # ✏️ UPDATE PROFILE
 # ==============================
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_volunteer_profile(request):
@@ -213,9 +218,42 @@ def update_volunteer_profile(request):
     except Volunteer.DoesNotExist:
         return Response({"error": "Volunteer not found"}, status=404)
 
+    data = request.data.copy()
+
+    # 🔥 NEW: Convert location → lat/lon
+    location = data.get("location")
+
+    if location:
+        try:
+            ctx = ssl.create_default_context(cafile=certifi.where())
+
+            geolocator = Nominatim(
+                user_agent="sevasync",
+                ssl_context=ctx,
+                timeout=5
+            )
+
+            geo = geolocator.geocode(location)
+
+            if geo:
+                data["latitude"] = geo.latitude
+                data["longitude"] = geo.longitude
+            else:
+                return Response(
+                    {"error": "Invalid location name"},
+                    status=400
+                )
+
+        except Exception as e:
+            print("Geocoding error:", e)
+            return Response(
+                {"error": "Location service failed"},
+                status=500
+            )
+
     serializer = VolunteerSerializer(
         volunteer,
-        data=request.data,
+        data=data,
         partial=True
     )
 
