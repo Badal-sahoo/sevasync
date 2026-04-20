@@ -1,38 +1,105 @@
-def calculate_score(task, volunteer):
-    score = 0
+import math
+import os
+from google import genai
 
-    # 🔹 Skill match
-    task_type = task.need_type.lower()  # ✅ FIXED
-    skills = [s.lower() for s in volunteer.skills]
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in KM
 
-    if task_type in skills:
-        score += 50
-    elif any(task_type in s for s in skills):
-        score += 30
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
 
-    # 🔹 Urgency
-    if task.urgency.upper() == "HIGH":   # ✅ consistency fix
-        score += 30
-    elif task.urgency.upper() == "MEDIUM":
-        score += 20
-    else:
-        score += 10
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
 
-    # 🔹 Location match
-    if volunteer.location and task.location:
-        if volunteer.location.lower() == task.location.lower():
-            score += 20
-        else:
-            score += 10
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
 
-    return score
+    return R * c
 # matching/utils.py
+def get_performance_score(volunteer):
+    from apps.tasks.models import Assignment
 
+    total = Assignment.objects.filter(volunteer=volunteer).count()
+    completed = Assignment.objects.filter(
+        volunteer=volunteer, status="completed"
+    ).count()
+
+    if total == 0:
+        return 0
+
+    return (completed / total) * 20
+
+def get_distance_score(distance):
+    if distance <= 2:
+        return 20
+    elif distance <= 5:
+        return 15
+    elif distance <= 10:
+        return 10
+    else:
+        return 0
+    
+
+
+client = genai.Client(api_key=os.getenv("AI_API_KEY"))
+
+def gemini_refine_scores(task, candidates):
+    try:
+        prompt = f"""
+You are an AI system that ranks volunteers for a task.
+
+Task:
+Type: {task.need_type}
+Urgency: {task.urgency}
+Location: {task.location}
+
+Volunteers:
+"""
+
+        for i, v in enumerate(candidates, 1):
+            prompt += f"""
+{i}. Name: {v['name']}
+   Skills: {v['skills']}
+   Distance: {v['distance_km']} km
+   Base Score: {v['score']}
+"""
+
+        prompt += """
+Return ONLY a JSON list like:
+[
+  {"name": "Rahul", "score": 95},
+  {"name": "Aman", "score": 88}
+]
+Do not add explanation.
+"""
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
+
+        text = response.text.strip()
+
+        import json
+        refined = json.loads(text)
+
+        return refined
+
+    except Exception as e:
+        print("Gemini error:", e)
+        return None
+    
 def get_matched_volunteers(task):
     from apps.volunteers.models import Volunteer
     from apps.tasks.models import Assignment
-    from .utils import calculate_score  # already exists
+    from .utils import calculate_score
 
+    # 🔹 Parse task location
+    try:
+        task_lat, task_lon = map(float, task.location.split(","))
+    except:
+        task_lat, task_lon = None, None
+
+    # 🔹 Busy volunteers
     busy_volunteers = Assignment.objects.filter(
         status="accepted"
     ).values_list("volunteer_id", flat=True)
@@ -43,17 +110,53 @@ def get_matched_volunteers(task):
     results = []
 
     for v in volunteers:
-        score = calculate_score(task, v)
+
+        # 🔹 Skip if no lat/lon
+        if not v.latitude or not v.longitude or not task_lat:
+            continue
+
+        # 🔹 Distance
+        distance = calculate_distance(
+            task_lat, task_lon,
+            v.latitude, v.longitude
+        )
+
+        # 🔹 Filter far volunteers (>10km)
+        if distance > 10:
+            continue
+
+        # 🔹 Base score
+        base_score = calculate_score(task, v)
+
+        # 🔹 Distance score
+        distance_score = get_distance_score(distance)
+
+        # 🔹 Performance score
+        performance_score = get_performance_score(v)
+
+        # 🔹 Final score
+        final_score = base_score + distance_score + performance_score
 
         results.append({
             "volunteer_id": v.id,
             "name": v.user.name,
             "skills": v.skills,
             "location": v.location,
-            "availability": v.availability,
-            "score": round(score, 2)
+            "distance_km": round(distance, 2),
+            "score": round(final_score, 2)
         })
 
-    results.sort(key=lambda x: x["score"], reverse=True)
+    top_candidates = results[:5]
 
+    refined = gemini_refine_scores(task, top_candidates)
+
+    # 🔹 Apply refined scores (if available)
+    if refined:
+        name_to_score = {r["name"]: r["score"] for r in refined}
+
+        for v in results:
+            if v["name"] in name_to_score:
+                v["score"] = name_to_score[v["name"]]
+
+        results.sort(key=lambda x: x["score"], reverse=True)
     return results
