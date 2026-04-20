@@ -34,7 +34,7 @@ const VolunteerTaskCard = ({
     setFeedback("");
 
     try {
-      await respondToVolunteerTask({ taskId, action });
+      await respondToVolunteerTask(taskId, action);
 
       if (action === "accept") {
         onTaskUpdated?.(taskId, {

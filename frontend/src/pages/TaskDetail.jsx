@@ -73,7 +73,7 @@ const TaskDetail = () => {
 
   const handleComplete = async () => {
     try {
-      await completeTaskByNgo({ taskId: id });
+      await completeTaskByNgo(id);
       alert("Task completed successfully");
       await fetchTask();
     } catch (err) {

@@ -1,4 +1,9 @@
 .env
 sevasync-425d0-firebase-adminsdk-fbsvc-aac40031af.json
 venv
+db.sqlite3
+media/
+__pycache__/
 *.pyc
+*.pyo
+*.pyd

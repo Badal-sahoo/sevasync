@@ -218,19 +218,30 @@ def update_volunteer_profile(request):
     except Volunteer.DoesNotExist:
         return Response({"error": "Volunteer not found"}, status=404)
 
+    # ✅ STEP 1: Get data FIRST
     data = request.data.copy()
 
-    # 🔥 NEW: Convert location → lat/lon
+    # ✅ STEP 2: Fix wrong structure (IMPORTANT)
+    if isinstance(data.get("skills"), dict):
+        nested = data.get("skills")
+
+        data["skills"] = nested.get("skills", [])
+        data["location"] = nested.get("location")
+
+    # 🔥 STEP 3: Convert location → lat/lon
     location = data.get("location")
 
     if location:
         try:
+            import ssl, certifi
+            from geopy.geocoders import Nominatim
+
             ctx = ssl.create_default_context(cafile=certifi.where())
 
             geolocator = Nominatim(
-                user_agent="sevasync",
+                user_agent="sevasync_app_123",
                 ssl_context=ctx,
-                timeout=5
+                timeout=10
             )
 
             geo = geolocator.geocode(location)
@@ -251,6 +262,7 @@ def update_volunteer_profile(request):
                 status=500
             )
 
+    # ✅ STEP 4: Save using serializer
     serializer = VolunteerSerializer(
         volunteer,
         data=data,
