@@ -1,6 +1,5 @@
 from apps.tasks.models import Task, Assignment
 from apps.volunteers.models import Volunteer
-from apps.notifications.utils import send_push
 
 
 def assign_volunteer(task_id, volunteer_id):
@@ -10,25 +9,37 @@ def assign_volunteer(task_id, volunteer_id):
     except Exception:
         raise ValueError("Invalid task or volunteer ID")
 
-    if Assignment.objects.filter(task=task, volunteer=volunteer).exists():
-        raise ValueError("Request already sent")
+    # A finished task must not accept new volunteers.
+    if task.status in ("completed", "cancelled"):
+        raise ValueError("Task is already finished and cannot take new volunteers")
+
+    # An NGO may request several volunteers for the same task, but not the same
+    # volunteer twice while a prior request is still live.
+    if Assignment.objects.filter(
+        task=task, volunteer=volunteer, status__in=("requested", "accepted")
+    ).exists():
+        raise ValueError("Request already sent to this volunteer")
 
     if Assignment.objects.filter(volunteer=volunteer, status="accepted").exists():
         raise ValueError("Volunteer already busy")
 
     Assignment.objects.create(task=task, volunteer=volunteer, status="requested")
-    task.status = "requested"
-    task.save()
-
-    send_push(
-        volunteer.fcm_token,
-        "New Task Request",
-        f"You have been requested for a {task.need_type} task at {task.location_name or 'your area'}.",
-    )
+    # Only advance pending → requested. Never downgrade a task that already has an
+    # accepted volunteer (status "assigned") when more volunteers are requested.
+    if task.status == "pending":
+        task.status = "requested"
+        task.save()
 
 
 def respond_to_assignment(task_id, volunteer, action):
-    assignment = Assignment.objects.filter(task_id=task_id, volunteer=volunteer).first()
+    # Target the live assignment (a volunteer may have older rejected rows for the
+    # same task after re-requests); never act on a stale one.
+    assignment = (
+        Assignment.objects
+        .filter(task_id=task_id, volunteer=volunteer, status__in=("requested", "accepted"))
+        .order_by("-id")
+        .first()
+    )
 
     if not assignment:
         raise ValueError("Assignment not found")
@@ -51,24 +62,10 @@ def respond_to_assignment(task_id, volunteer, action):
         task.status = "assigned"
         task.save()
 
-        send_push(
-            task.ngo.fcm_token,
-            "Volunteer Accepted",
-            f"{volunteer.user.name} accepted your {task.need_type} task.",
-        )
-
-        other_assignments = Assignment.objects.filter(
+        # The volunteer committed here, so withdraw their other open requests.
+        Assignment.objects.filter(
             volunteer=volunteer, status="requested"
-        ).exclude(id=assignment.id).select_related('task__ngo')
-
-        for other in other_assignments:
-            send_push(
-                other.task.ngo.fcm_token,
-                "Assignment Auto-Rejected",
-                f"Your request for a {other.task.need_type} task was declined — the volunteer accepted another task.",
-            )
-
-        other_assignments.update(status="rejected")
+        ).exclude(id=assignment.id).update(status="rejected")
 
     elif action == "reject":
         assignment.status = "rejected"
@@ -85,20 +82,14 @@ def respond_to_assignment(task_id, volunteer, action):
             task.status = "pending"
             task.save()
 
-        send_push(
-            task.ngo.fcm_token,
-            "Volunteer Declined",
-            f"A volunteer declined your {task.need_type} task.",
-        )
-
     else:
         raise ValueError("Invalid action. Must be 'accept' or 'reject'")
 
 
 def withdraw_assignment(assignment_id, volunteer):
-    """Volunteer withdraws from an assignment they own. Task reverts to pending."""
+    """Volunteer withdraws from an assignment they own."""
     try:
-        assignment = Assignment.objects.select_related('task__ngo').get(
+        assignment = Assignment.objects.select_related('task').get(
             id=assignment_id, volunteer=volunteer
         )
     except Assignment.DoesNotExist:
@@ -111,11 +102,11 @@ def withdraw_assignment(assignment_id, volunteer):
     assignment.status = "withdrawn"
     assignment.save()
 
-    task.status = "pending"
-    task.save()
-
-    send_push(
-        task.ngo.fcm_token,
-        "Volunteer Withdrew",
-        f"A volunteer withdrew from your {task.need_type} task at {task.location_name or 'your area'}.",
-    )
+    # Only return the task to the pool if no other volunteer is still engaged
+    # (supports multiple volunteers per task).
+    still_active = Assignment.objects.filter(
+        task=task, status__in=("requested", "accepted")
+    ).exclude(id=assignment.id).exists()
+    if not still_active:
+        task.status = "pending"
+        task.save()

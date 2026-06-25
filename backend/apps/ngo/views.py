@@ -17,7 +17,7 @@ def ngo_dashboard(request):
             "completed_tasks": Task.objects.filter(ngo=user, status="completed").count(),
             "urgent_tasks": Task.objects.filter(ngo=user, urgency="HIGH").count(),
             "active_volunteers": Assignment.objects.filter(
-                task__ngo=user
+                task__ngo=user, status="accepted"
             ).values('volunteer').distinct().count(),
         })
     except Exception as e:
@@ -42,16 +42,25 @@ def ngo_requests(request):
         else:
             return Response({"error": "Invalid urgency value"}, status=400)
 
+    tasks = list(tasks)
+    task_ids = [t.id for t in tasks]
+
+    # Fetch every engaged (requested/accepted) volunteer for all of these tasks in
+    # ONE query and index it, instead of querying once per task (N+1 → 2 queries).
+    active_by_task = {}
+    for a in (
+        Assignment.objects
+        .filter(task_id__in=task_ids, status__in=("requested", "accepted"))
+        .select_related("volunteer__user")
+        .order_by("task_id", "id")
+    ):
+        active_by_task.setdefault(a.task_id, a)  # first engaged volunteer per task
+
     data = []
     for t in tasks:
-        # Only surface a volunteer who is actually engaged (requested/accepted) —
-        # never a stale rejected/withdrawn/cancelled assignment.
-        assignment = (
-            Assignment.objects
-            .filter(task=t, status__in=("requested", "accepted"))
-            .select_related("volunteer__user")
-            .first()
-        )
+        # Only surface a volunteer who is actually engaged — never a stale
+        # rejected/withdrawn/cancelled assignment.
+        assignment = active_by_task.get(t.id)
         volunteer_data = None
         if assignment:
             v = assignment.volunteer

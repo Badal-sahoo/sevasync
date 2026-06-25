@@ -121,10 +121,10 @@ const styles = {
   card: {
     background: "#ffffff",
     color: "#0a1f5c",
-    borderRadius: "14px",
+    borderRadius: "16px",
     display: "flex",
     flexDirection: "column",
-    minHeight: "200px",
+    minHeight: "240px",
     boxShadow: "0 2px 10px rgba(10,31,92,0.06)",
     transition: "transform 0.2s ease, box-shadow 0.2s ease",
     overflow: "hidden",
@@ -132,7 +132,7 @@ const styles = {
   },
 
   accentBar: {
-    height: "4px",
+    height: "5px",
     width: "100%",
   },
 
@@ -140,14 +140,14 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    padding: "16px 18px 8px",
+    padding: "20px 22px 10px",
   },
 
   title: {
-    fontSize: "14px",
+    fontSize: "17px",
     fontWeight: "700",
     color: "#0a1f5c",
-    letterSpacing: "0.8px",
+    letterSpacing: "0.6px",
     margin: 0,
   },
 
@@ -160,31 +160,31 @@ const styles = {
   },
 
   body: {
-    padding: "4px 18px 12px",
+    padding: "6px 22px 16px",
     display: "flex",
     flexDirection: "column",
-    gap: "6px",
+    gap: "10px",
   },
 
   infoRow: {
     display: "flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "10px",
   },
 
   infoIcon: {
-    fontSize: "13px",
+    fontSize: "15px",
   },
 
   infoText: {
-    fontSize: "13px",
+    fontSize: "14px",
     color: "#5a7299",
   },
 
   divider: {
     height: "1px",
     background: "#e8eef8",
-    margin: "0 18px",
+    margin: "0 22px",
   },
 
   footer: {

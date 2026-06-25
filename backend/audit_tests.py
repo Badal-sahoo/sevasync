@@ -199,6 +199,26 @@ class CsvUploadPipelineTests(Base):
         r = self.client.post("/api/ngo/upload/", {}, format="multipart")
         self.assertEqual(r.status_code, 400)
 
+    def test_upload_without_need_type_column_is_classified(self):
+        """A CSV that only has name/problem/pincode/location must still classify
+        need types from the problem text (not dump everything into 'general')."""
+        self.make_ngo()
+        self.auth("ngo@x.com")
+        header = "name,problem,pincode,location\n"
+        body = "\n".join([
+            "u1,water shortage,560001,Bangalore",
+            "u2,food shortage,560001,Bangalore",
+            "u3,medical emergency,560001,Bangalore",
+            "u4,need shelter,560001,Bangalore",
+            "u5,power cut,560001,Bangalore",
+        ])
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile("needs.csv", (header + body).encode(), content_type="text/csv")
+        r = self.client.post("/api/ngo/upload/", {"file": f}, format="multipart")
+        self.assertEqual(r.status_code, 200, r.content)
+        types = set(Need.objects.filter(ngo__email="ngo@x.com").values_list("need_type", flat=True))
+        self.assertEqual(types, {"water", "food", "medical", "shelter", "electricity"}, types)
+
     def test_create_need_manual(self):
         self.make_ngo()
         self.auth("ngo@x.com")
@@ -326,6 +346,63 @@ class AssignmentWorkflowTests(Base):
         self.assertEqual(r.status_code, 200, r.content)
         self.task.refresh_from_db()
         self.assertEqual(self.task.status, "cancelled")
+
+    def test_multiple_volunteers_one_task_no_status_downgrade(self):
+        self._setup()
+        vol2 = self.make_vol("v2@x.com", "Vol Two", lat=12.972, lon=77.595, skills=["food"])
+        self.auth("ngo@x.com")
+        # request vol1, vol1 accepts -> task assigned
+        self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": self.vol.id}, format="json")
+        self.auth("v1@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/respond/", {"action": "accept"}, format="json")
+        self.task.refresh_from_db(); self.assertEqual(self.task.status, "assigned")
+        # NGO requests a SECOND volunteer for the same task -> must NOT downgrade to requested
+        self.auth("ngo@x.com")
+        r = self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": vol2.id}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, "assigned", "adding a volunteer must not downgrade an assigned task")
+
+    def test_cannot_assign_to_completed_task(self):
+        self._setup()
+        vol2 = self.make_vol("v2@x.com", "Vol Two", lat=12.972, lon=77.595)
+        self.auth("ngo@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": self.vol.id}, format="json")
+        self.auth("v1@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/respond/", {"action": "accept"}, format="json")
+        self.auth("ngo@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/complete/", {}, format="json")
+        # now assign a fresh volunteer to the completed task -> blocked
+        r = self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": vol2.id}, format="json")
+        self.assertEqual(r.status_code, 400, r.content)
+
+    def test_dashboard_active_volunteers_counts_accepted_only(self):
+        self._setup()
+        vol2 = self.make_vol("v2@x.com", "Vol Two", lat=12.972, lon=77.595)
+        self.auth("ngo@x.com")
+        # vol1 requested+accepted, vol2 only requested (then rejects)
+        self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": self.vol.id}, format="json")
+        self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": vol2.id}, format="json")
+        self.auth("v1@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/respond/", {"action": "accept"}, format="json")
+        self.auth("v2@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/respond/", {"action": "reject"}, format="json")
+        self.auth("ngo@x.com")
+        d = self.client.get("/api/ngo/dashboard/").json()
+        self.assertEqual(d["active_volunteers"], 1, d)  # only the accepted volunteer
+
+    def test_volunteer_cannot_post_progress_after_completion(self):
+        self._setup()
+        self.auth("ngo@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": self.vol.id}, format="json")
+        self.auth("v1@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/respond/", {"action": "accept"}, format="json")
+        self.auth("ngo@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/complete/", {}, format="json")
+        # volunteer tries to post an update on the finished task -> 403
+        self.auth("v1@x.com")
+        r = self.client.post(f"/api/tasks/{self.task.id}/progress/", {"message": "late update"}, format="json")
+        self.assertEqual(r.status_code, 403, r.content)
 
     def test_volunteer_already_busy_cannot_be_assigned(self):
         self._setup()

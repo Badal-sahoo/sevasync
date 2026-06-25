@@ -10,12 +10,18 @@ const TaskDetail = () => {
   const [volunteers, setVolunteers] = useState([]);
   const [matchWarning, setMatchWarning] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const [sendingId, setSendingId] = useState(null);
   const [updates, setUpdates] = useState([]);
 
-  const isRequested = task?.status === "requested";
-  const isAssigned = task?.status === "assigned";
-  const isDisabled = sending || isRequested;
+  const isCompleted = task?.status === "completed";
+  const isCancelled = task?.status === "cancelled";
+  // Multiple volunteers can be assigned to one task — keep recommending until done.
+  const canAssign = task ? task.can_assign !== false && !isCompleted && !isCancelled : false;
+
+  const acceptedVolunteers = task?.accepted_volunteers || [];
+  const requestedVolunteers = task?.requested_volunteers || [];
+  const requestedIds = new Set(requestedVolunteers.map((v) => v.id));
+  const acceptedIds = new Set(acceptedVolunteers.map((v) => v.id));
 
   const fetchTask = async () => {
     try {
@@ -49,13 +55,15 @@ const TaskDetail = () => {
 
   const handleAssign = async (volunteerId) => {
     try {
-      setSending(true);
+      setSendingId(volunteerId);
       await assignTask(id, volunteerId);
+      // Refresh both the task (assigned/requested lists) and the recommendations.
       await fetchTask();
+      await fetchUpdates();
     } catch (err) {
-      alert("Request failed");
+      alert(err?.response?.data?.error || "Request failed");
     } finally {
-      setSending(false);
+      setSendingId(null);
     }
   };
 
@@ -97,10 +105,14 @@ const TaskDetail = () => {
               </span>
               <span style={{
                 ...styles.statusBadge,
-                ...(isAssigned
+                ...(task.status === "assigned"
                   ? { color: "#059669", background: "#f0fdf4", border: "1px solid #bbf7d0" }
-                  : isRequested
+                  : task.status === "requested"
                   ? { color: "#d97706", background: "#fffbeb", border: "1px solid #fde68a" }
+                  : task.status === "completed"
+                  ? { color: "#7c3aed", background: "#f5f3ff", border: "1px solid #ddd6fe" }
+                  : task.status === "cancelled"
+                  ? { color: "#dc2626", background: "#fff1f2", border: "1px solid #fecdd3" }
                   : { color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe" }),
               }}>
                 {task.status}
@@ -116,48 +128,68 @@ const TaskDetail = () => {
         </div>
       </div>
 
-      {/* STATUS BANNERS */}
-      {isRequested && (
-        <div style={styles.pendingBanner}>
-          <div style={styles.bannerIcon}>📩</div>
-          <div>
-            <h4 style={styles.bannerTitle}>Request Sent</h4>
-            <p style={styles.bannerSub}>Waiting for volunteer to respond...</p>
-            {task.requested_volunteers?.[0] && <p style={styles.bannerName}>👤 {task.requested_volunteers[0].name}</p>}
-          </div>
-        </div>
-      )}
-
-      {isAssigned && (
+      {/* ASSIGNED / REQUESTED VOLUNTEERS SUMMARY */}
+      {acceptedVolunteers.length > 0 && (
         <div style={styles.assignedBanner}>
           <div style={styles.bannerIcon}>✅</div>
           <div>
-            <h4 style={styles.bannerTitle}>Task Assigned</h4>
-            <p style={styles.bannerSub}>👤 {task.accepted_volunteer?.name}</p>
+            <h4 style={styles.bannerTitle}>
+              Working on this task ({acceptedVolunteers.length})
+            </h4>
+            <p style={styles.bannerSub}>
+              {acceptedVolunteers.map((v) => `👤 ${v.name}`).join("   ")}
+            </p>
           </div>
         </div>
       )}
 
-      {/* VOLUNTEERS */}
-      {!isRequested && !isAssigned && (
+      {requestedVolunteers.length > 0 && (
+        <div style={styles.pendingBanner}>
+          <div style={styles.bannerIcon}>📩</div>
+          <div>
+            <h4 style={styles.bannerTitle}>
+              Awaiting response ({requestedVolunteers.length})
+            </h4>
+            <p style={styles.bannerSub}>
+              {requestedVolunteers.map((v) => `👤 ${v.name}`).join("   ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* RECOMMENDED VOLUNTEERS — keep open so the NGO can add several */}
+      {canAssign && (
         <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Recommended Volunteers</h3>
+          <h3 style={styles.sectionTitle}>
+            Recommended Volunteers
+            <span style={{ fontSize: "12px", color: "#8fa3c0", fontWeight: 500, marginLeft: "8px" }}>
+              (you can assign more than one)
+            </span>
+          </h3>
           {matchWarning && (
             <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "10px 14px", fontSize: "13px", color: "#92400e", fontWeight: 600 }}>
               ⚠️ {matchWarning}
             </div>
           )}
           <div style={styles.volGrid}>
-            {volunteers.map((v, idx) => (
-              <VolunteerCard
-                key={v.volunteer_id}
-                volunteer={v}
-                index={idx}
-                onAssign={handleAssign}
-                disabled={isDisabled}
-                sending={sending}
-              />
-            ))}
+            {volunteers.map((v, idx) => {
+              const state = acceptedIds.has(v.volunteer_id)
+                ? "accepted"
+                : requestedIds.has(v.volunteer_id)
+                ? "requested"
+                : sendingId === v.volunteer_id
+                ? "sending"
+                : "send";
+              return (
+                <VolunteerCard
+                  key={v.volunteer_id}
+                  volunteer={v}
+                  index={idx}
+                  onAssign={handleAssign}
+                  state={state}
+                />
+              );
+            })}
           </div>
         </div>
       )}
@@ -190,12 +222,22 @@ const TaskDetail = () => {
         </div>
       </div>
 
-      {/* COMPLETE BUTTON */}
-      {isAssigned && (
+      {/* COMPLETE BUTTON — available once at least one volunteer is on it */}
+      {acceptedVolunteers.length > 0 && !isCompleted && !isCancelled && (
         <div style={styles.completeWrap}>
           <button style={styles.completeBtn} onClick={handleComplete}>
             ✓ Mark Task as Completed
           </button>
+        </div>
+      )}
+
+      {isCompleted && (
+        <div style={{ ...styles.assignedBanner, background: "#f5f3ff", border: "1px solid #ddd6fe" }}>
+          <div style={styles.bannerIcon}>🏁</div>
+          <div>
+            <h4 style={styles.bannerTitle}>Task Completed</h4>
+            <p style={styles.bannerSub}>Points have been awarded to the assigned volunteers.</p>
+          </div>
         </div>
       )}
     </div>
