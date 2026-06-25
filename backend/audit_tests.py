@@ -171,14 +171,25 @@ class NgoDashboardTests(Base):
         r3 = self.client.get("/api/ngo/requests/?urgency=BOGUS")
         self.assertEqual(r3.status_code, 400)
 
-    def test_heatmap(self):
+    def test_heatmap_reflects_active_tasks_and_updates_on_completion(self):
         ngo = self.make_ngo()
-        Need.objects.create(ngo=ngo, name="n", problem="p", need_type="medical", latitude=12.9, longitude=77.5)
+        # active HIGH task -> one heatmap point with intensity 3
+        active = Task.objects.create(ngo=ngo, need_type="medical", urgency="HIGH", people_count=30,
+                                     status="pending", latitude=12.9, longitude=77.5)
+        # completed task -> excluded from heatmap
+        Task.objects.create(ngo=ngo, need_type="food", urgency="MEDIUM", people_count=5,
+                            status="completed", latitude=12.8, longitude=77.4)
         self.auth("ngo@x.com")
         r = self.client.get("/api/ngo/heatmap/")
         self.assertEqual(r.status_code, 200, r.content)
-        self.assertEqual(len(r.json()), 1)
-        self.assertIn("intensity", r.json()[0])
+        pts = r.json()
+        self.assertEqual(len(pts), 1, "only the active task should appear")
+        self.assertEqual(pts[0]["intensity"], 3)  # HIGH
+        # completing the remaining task removes it from the heatmap
+        active.status = "completed"
+        active.save()
+        r2 = self.client.get("/api/ngo/heatmap/")
+        self.assertEqual(len(r2.json()), 0, "heatmap must update after completion")
 
 
 class CsvUploadPipelineTests(Base):

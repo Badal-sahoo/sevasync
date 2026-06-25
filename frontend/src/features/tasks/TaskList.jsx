@@ -17,7 +17,10 @@ const TaskList = ({ ngoId, filter }) => {
       const data = await getNgoRequests();
 
       const filteredTasks = data.filter((task) => {
-        if (filter === "pending") return task.status === "pending";
+        // "Pending" groups everything not yet accepted — including tasks where a
+        // request was already sent (status "requested"), which otherwise matched
+        // no tab and disappeared from the UI while still counting on the dashboard.
+        if (filter === "pending") return task.status === "pending" || task.status === "requested";
         if (filter === "assigned") return task.status === "assigned";
         if (filter === "completed") return task.status === "completed";
         return true;

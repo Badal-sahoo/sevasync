@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { addTaskUpdate, getTaskUpdates } from "../../api/tasks";
 import "./VolunteerTaskDetail.css";
 import { getTaskById } from "../../api/tasks";
+import VolunteerLayout from "../../shared/VolunteerLayout";
 
 const VolunteerTaskDetail = () => {
   const { taskId } = useParams();
+  const navigate = useNavigate();
   const [task, setTask] = useState(null);
   const [updates, setUpdates] = useState([]);
   const [message, setMessage] = useState("");
@@ -44,6 +46,11 @@ const VolunteerTaskDetail = () => {
   };
 
   return (
+    <VolunteerLayout
+      title="Task Progress"
+      subtitle={task ? task.need_type?.toUpperCase() : ""}
+      onBack={() => navigate(-1)}
+    >
     <div className="task-detail">
       <h2>Task Progress</h2>
 {task && (
@@ -90,6 +97,7 @@ const VolunteerTaskDetail = () => {
         ))}
       </div>
     </div>
+    </VolunteerLayout>
   );
 };
 

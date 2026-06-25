@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { assignTask, completeTaskByNgo, getTaskById, getTaskUpdates } from "../../api/tasks";
 import VolunteerCard from "./VolunteerCard";
+import NgoLayout from "../../shared/NgoLayout";
 
 const TaskDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [task, setTask] = useState(null);
   const [volunteers, setVolunteers] = useState([]);
@@ -77,8 +79,16 @@ const TaskDetail = () => {
     }
   };
 
-  if (loading) return <div style={styles.loadingWrap}><div style={styles.loadingSpinner}>Loading task...</div></div>;
-  if (!task) return <p style={{ color: "#ef4444", padding: "20px" }}>No task found</p>;
+  if (loading) return (
+    <NgoLayout active="TaskList" title="Task Detail" onBack={() => navigate(-1)}>
+      <div style={styles.loadingWrap}><div style={styles.loadingSpinner}>Loading task...</div></div>
+    </NgoLayout>
+  );
+  if (!task) return (
+    <NgoLayout active="TaskList" title="Task Detail" onBack={() => navigate(-1)}>
+      <p style={{ color: "#ef4444", padding: "20px" }}>No task found</p>
+    </NgoLayout>
+  );
 
   const type = task.type || task.need_type || "unknown";
 
@@ -89,6 +99,7 @@ const TaskDetail = () => {
   }[task.urgency] || { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
 
   return (
+    <NgoLayout active="TaskList" title={`Task #${id}`} subtitle={type.toUpperCase()} onBack={() => navigate(-1)}>
     <div style={styles.container}>
       {/* TASK HEADER */}
       <div style={styles.headerCard}>
@@ -241,6 +252,7 @@ const TaskDetail = () => {
         </div>
       )}
     </div>
+    </NgoLayout>
   );
 };
 
