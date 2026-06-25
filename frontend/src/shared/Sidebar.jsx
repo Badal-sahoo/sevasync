@@ -1,14 +1,15 @@
 import React from "react";
 
 const menuItems = [
-  { name: "Overview", icon: "⊞" },
-  { name: "Tasks", icon: "☰" },
-  { name: "Profile", icon: "◍" },
-  { name: "Rewards", icon: "★" },
+  { name: "Home", icon: "⊞" },
+  { name: "Upload", icon: "↑" },
+  { name: "TaskList", icon: "☰" },
+  { name: "Assigned", icon: "✓" },
+  { name: "Completed", icon: "◎" },
 ];
 
-const VolunteerSidebar = ({ active, setActive, name }) => {
-  const displayName = name || "Volunteer";
+const Sidebar = ({ active, setActive, name }) => {
+  const displayName = name || "NGO Panel";
   return (
     <aside className="fixed left-0 top-0 flex h-screen w-[250px] flex-col bg-gradient-to-b from-[#0a1f5c] via-[#1a3a8f] to-[#1e4db7] text-white shadow-[4px_0_24px_rgba(10,31,92,0.18)]">
       {/* Logo */}
@@ -18,25 +19,25 @@ const VolunteerSidebar = ({ active, setActive, name }) => {
         </div>
         <div className="min-w-0">
           <div className="truncate text-base font-bold tracking-wide" title={displayName}>{displayName}</div>
-          <div className="mt-px text-[11px] text-white/50">Volunteer</div>
+          <div className="mt-px text-[11px] text-white/50">NGO</div>
         </div>
       </div>
 
       <div className="mx-[22px] mb-4 h-px bg-white/10" />
 
       <nav className="flex flex-1 flex-col gap-1 px-[14px]">
-        {menuItems.map(({ name, icon }) => {
-          const isActive = active === name;
+        {menuItems.map(({ name: item, icon }) => {
+          const isActive = active === item;
           return (
             <div
-              key={name}
-              onClick={() => setActive(name)}
+              key={item}
+              onClick={() => setActive(item)}
               className={`relative flex cursor-pointer items-center gap-3 rounded-[10px] px-[14px] py-[11px] text-sm font-medium transition ${
                 isActive ? "bg-white/15 text-white" : "text-white/65 hover:bg-white/10 hover:text-white"
               }`}
             >
               <span className={`w-5 text-center text-[15px] ${isActive ? "opacity-100" : "opacity-70"}`}>{icon}</span>
-              <span>{name}</span>
+              <span>{item}</span>
               {isActive && <span className="absolute right-[14px] h-1.5 w-1.5 rounded-full bg-[#60a5fa]" />}
             </div>
           );
@@ -46,11 +47,11 @@ const VolunteerSidebar = ({ active, setActive, name }) => {
       <div className="border-t border-white/10 px-[22px] py-[18px]">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-[#4ade80] shadow-[0_0_6px_#4ade80]" />
-          <span className="text-xs text-white/50">On Duty</span>
+          <span className="text-xs text-white/50">Organization Active</span>
         </div>
       </div>
     </aside>
   );
 };
 
-export default VolunteerSidebar;
+export default Sidebar;

@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logoutUser } from "../auth/firebase";
+import { getNgoDashboard } from "../api/ngo";
 import Sidebar from "./Sidebar";
 
 /**
@@ -8,6 +10,13 @@ import Sidebar from "./Sidebar";
  */
 const NgoLayout = ({ active = "TaskList", title, subtitle, onBack, children }) => {
   const navigate = useNavigate();
+  const [ngoName, setNgoName] = useState("");
+
+  useEffect(() => {
+    getNgoDashboard()
+      .then((d) => setNgoName(d?.name || ""))
+      .catch(() => {});
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -22,7 +31,8 @@ const NgoLayout = ({ active = "TaskList", title, subtitle, onBack, children }) =
     <div style={styles.wrapper}>
       <Sidebar
         active={active}
-        setActive={(name) => navigate("/ngo-dashboard", { state: { tab: name } })}
+        name={ngoName}
+        setActive={(tab) => navigate("/ngo-dashboard", { state: { tab } })}
       />
 
       <div style={styles.main}>

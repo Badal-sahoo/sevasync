@@ -27,6 +27,7 @@ const VolunteerDashboard = () => {
   const [active, setActive] = useState("Overview");
   const [authReady, setAuthReady] = useState(false);
   const [tasks, setTasks] = useState([]);
+  const [name, setName] = useState("");
   const [dashError, setDashError] = useState("");
 
   useEffect(() => {
@@ -55,6 +56,7 @@ const VolunteerDashboard = () => {
     try {
       setDashError("");
       const data = await getVolunteerDashboard();
+      if (data?.name) setName(data.name);
       const requested = (data.requested_tasks || []).map((t) => ({ ...t, assignmentStatus: "requested" }));
       const activeT = (data.active_tasks || []).map((t) => ({ ...t, assignmentStatus: "accepted" }));
       const allTasks = [...requested, ...activeT].sort(
@@ -143,7 +145,7 @@ const VolunteerDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-[#f0f5ff] font-poppins">
-      <VolunteerSidebar active={active} setActive={setActive} />
+      <VolunteerSidebar active={active} setActive={setActive} name={name} />
 
       <div className="ml-[250px] flex flex-1 flex-col">
         {/* Top panel */}

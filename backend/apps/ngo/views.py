@@ -16,6 +16,7 @@ def ngo_dashboard(request):
         _finished = ("completed", "cancelled")
         ngo_tasks = Task.objects.filter(ngo=user)
         return Response({
+            "name": user.name,
             "total_requests": Need.objects.filter(ngo=user).count(),
             "total_tasks": ngo_tasks.exclude(status__in=_finished).count(),
             "completed_tasks": ngo_tasks.filter(status="completed").count(),
@@ -27,7 +28,7 @@ def ngo_dashboard(request):
     except Exception as e:
         print("NGO DASHBOARD ERROR:", str(e))
         return Response({
-            "total_requests": 0, "total_tasks": 0, "completed_tasks": 0,
+            "name": "", "total_requests": 0, "total_tasks": 0, "completed_tasks": 0,
             "active_volunteers": 0, "urgent_tasks": 0,
         })
 

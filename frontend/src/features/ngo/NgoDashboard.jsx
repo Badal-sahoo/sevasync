@@ -8,6 +8,7 @@ import StatsCards from "./StatsCards";
 import TaskList from "../tasks/TaskList";
 import Heatmap from "../../maps/Heatmap";
 import UploadCSV from "./UploadCSV";
+import { getNgoDashboard } from "../../api/ngo";
 
 const NgoDashboard = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const NgoDashboard = () => {
   // Land on the tab chosen from another page's sidebar (e.g. Task Detail → Back).
   const [active, setActive] = useState(location.state?.tab || "Home");
   const [authReady, setAuthReady] = useState(false);
+  const [name, setName] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -29,6 +31,13 @@ const NgoDashboard = () => {
     });
     return () => unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    getNgoDashboard()
+      .then((d) => setName(d?.name || ""))
+      .catch(() => {});
+  }, [authReady]);
 
   const handleLogout = async () => {
     try {
@@ -77,7 +86,7 @@ const NgoDashboard = () => {
 
   return (
     <div style={styles.wrapper}>
-      <Sidebar active={active} setActive={setActive} />
+      <Sidebar active={active} setActive={setActive} name={name} />
 
       <div style={styles.main}>
         {/* TOP BAR */}
