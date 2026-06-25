@@ -22,16 +22,14 @@ const TaskCard = ({ task, onFindVolunteers }) => {
   const isCompleted = task.status === "completed";
   const isCancelled = task.status === "cancelled";
   const isRequested = task.status === "requested" || task.assignment_status === "requested";
-  const clickable = isAssigned || isCompleted;
 
   const open = () => onFindVolunteers(task.id);
 
   return (
     <div
-      onClick={() => clickable && open()}
-      className={`group flex min-h-[230px] flex-col overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_2px_10px_rgba(10,31,92,0.06)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(10,31,92,0.1)] ${
-        clickable ? "cursor-pointer" : ""
-      }`}
+      onClick={open}
+      title="Open task"
+      className="group flex min-h-[230px] cursor-pointer flex-col overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_2px_10px_rgba(10,31,92,0.06)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(10,31,92,0.1)]"
     >
       {/* top accent */}
       <div className={`h-1.5 w-full ${urgency.accent}`} />

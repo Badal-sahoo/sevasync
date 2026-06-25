@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { assignTask, completeTaskByNgo, cancelTaskByNgo, cancelRequest, getTaskById, getTaskUpdates } from "../../api/tasks";
 import VolunteerCard from "./VolunteerCard";
 import NgoLayout from "../../shared/NgoLayout";
@@ -7,6 +7,10 @@ import NgoLayout from "../../shared/NgoLayout";
 const TaskDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // The sidebar tab we came from, so Back returns there (not "Home").
+  const fromTab = location.state?.tab || "TaskList";
+  const goBack = () => navigate("/ngo-dashboard", { state: { tab: fromTab } });
 
   const [task, setTask] = useState(null);
   const [volunteers, setVolunteers] = useState([]);
@@ -53,6 +57,13 @@ const TaskDetail = () => {
       setLoading(false);
     };
     load();
+    // Auto-refresh so a volunteer's accept/reject and new progress updates appear
+    // live without a manual reload.
+    const poll = setInterval(() => {
+      fetchTask();
+      fetchUpdates();
+    }, 8000);
+    return () => clearInterval(poll);
   }, [id]);
 
   const handleAssign = async (volunteerId) => {
@@ -101,12 +112,12 @@ const TaskDetail = () => {
   };
 
   if (loading) return (
-    <NgoLayout active="TaskList" title="Task Detail" onBack={() => navigate(-1)}>
+    <NgoLayout active={fromTab} title="Task Detail" onBack={goBack}>
       <div style={styles.loadingWrap}><div style={styles.loadingSpinner}>Loading task...</div></div>
     </NgoLayout>
   );
   if (!task) return (
-    <NgoLayout active="TaskList" title="Task Detail" onBack={() => navigate(-1)}>
+    <NgoLayout active={fromTab} title="Task Detail" onBack={goBack}>
       <p style={{ color: "#ef4444", padding: "20px" }}>No task found</p>
     </NgoLayout>
   );
@@ -120,7 +131,7 @@ const TaskDetail = () => {
   }[task.urgency] || { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
 
   return (
-    <NgoLayout active="TaskList" title={`Task #${id}`} subtitle={type.toUpperCase()} onBack={() => navigate(-1)}>
+    <NgoLayout active={fromTab} title={`Task #${id}`} subtitle={type.toUpperCase()} onBack={goBack}>
     <div style={styles.container}>
       {/* TASK HEADER */}
       <div style={styles.headerCard}>

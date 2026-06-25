@@ -11,9 +11,9 @@ const TaskList = ({ ngoId, filter }) => {
 
   const navigate = useNavigate();
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await getNgoRequests();
 
       const filteredTasks = data.filter((task) => {
@@ -30,13 +30,19 @@ const TaskList = ({ ngoId, filter }) => {
     } catch (err) {
       console.error("Error loading tasks:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTasks();
+    // Auto-refresh so volunteer accept/reject shows up without a manual reload.
+    const id = setInterval(() => fetchTasks(true), 10000);
+    return () => clearInterval(id);
   }, [ngoId, filter]);
+
+  // Map this list's filter back to its sidebar tab so Task Detail can return here.
+  const tabForFilter = { pending: "TaskList", assigned: "Assigned", completed: "Completed" };
 
   const indexOfLast = currentPage * tasksPerPage;
   const indexOfFirst = indexOfLast - tasksPerPage;
@@ -44,7 +50,7 @@ const TaskList = ({ ngoId, filter }) => {
   const totalPages = Math.ceil(tasks.length / tasksPerPage);
 
   const handleFindVolunteers = (taskId) => {
-    navigate(`/task/${taskId}`);
+    navigate(`/task/${taskId}`, { state: { tab: tabForFilter[filter] || "TaskList" } });
   };
 
   const filterLabel = {
