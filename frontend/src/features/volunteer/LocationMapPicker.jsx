@@ -10,7 +10,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Flies map to a position when `flyTo` changes
 const MapController = ({ flyTo }) => {
   const map = useMap();
   useEffect(() => {
@@ -37,7 +36,6 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
   const [detecting, setDetecting] = useState(false);
   const [geoError, setGeoError] = useState("");
 
-  // Address autocomplete
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -49,7 +47,6 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
     onSelect(lat, lng);
   };
 
-  // Debounced Nominatim search as the volunteer types an address
   useEffect(() => {
     if (skipNextSearch.current) {
       skipNextSearch.current = false;
@@ -76,7 +73,7 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
       } finally {
         setSearching(false);
       }
-    }, 450); // debounce + respect Nominatim rate limits
+    }, 450);
 
     return () => {
       clearTimeout(timer);
@@ -89,7 +86,7 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
     const lng = parseFloat(r.lon);
     handleSelect(lat, lng);
     setFlyTo([lat, lng]);
-    skipNextSearch.current = true; // don't re-search when we fill the input
+    skipNextSearch.current = true;
     setQuery(r.display_name);
     setResults([]);
     setOpen(false);
@@ -104,10 +101,8 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
     setGeoError("");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        handleSelect(lat, lng);
-        setFlyTo([lat, lng]);
+        handleSelect(pos.coords.latitude, pos.coords.longitude);
+        setFlyTo([pos.coords.latitude, pos.coords.longitude]);
         setDetecting(false);
       },
       () => {
@@ -119,9 +114,9 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
   };
 
   return (
-    <div className="location-map-picker">
-      {/* 🔎 Address search with autocomplete dropdown */}
-      <div style={styles.searchWrap}>
+    <div className="flex flex-col gap-1.5">
+      {/* Address search with autocomplete dropdown */}
+      <div className="relative mb-2.5">
         <input
           type="text"
           value={query}
@@ -129,19 +124,17 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
           placeholder="Search your address or area…"
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length && setOpen(true)}
-          style={styles.searchInput}
+          className="w-full rounded-lg border border-[#dce6f5] px-3.5 py-2.5 text-sm outline-none focus:border-blue-500"
         />
-        {searching && <span style={styles.spinner}>…</span>}
+        {searching && <span className="absolute right-3 top-2.5 text-base text-slate-400">…</span>}
 
         {open && results.length > 0 && (
-          <ul style={styles.dropdown}>
+          <ul className="absolute left-0 right-0 top-[calc(100%+4px)] z-[1000] max-h-56 overflow-y-auto rounded-xl border border-[#dce6f5] bg-white p-1 shadow-[0_8px_24px_rgba(10,31,92,0.12)]">
             {results.map((r) => (
               <li
                 key={r.place_id}
-                style={styles.dropdownItem}
                 onMouseDown={() => pickResult(r)}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#eff6ff")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                className="cursor-pointer rounded-lg px-2.5 py-2 text-[12.5px] leading-snug text-[#0a1f5c] hover:bg-blue-50"
               >
                 📍 {r.display_name}
               </li>
@@ -150,12 +143,11 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
         )}
       </div>
 
-      {/* Auto-detect button */}
       <button
         type="button"
-        className="location-map-picker__detect-btn"
         onClick={detectLocation}
         disabled={disabled || detecting}
+        className="w-full rounded-lg border-[1.5px] border-blue-500 bg-blue-50 px-3.5 py-2.5 text-sm font-bold text-blue-600 transition hover:-translate-y-px hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {detecting ? "Detecting..." : "Use My Location"}
       </button>
@@ -175,57 +167,15 @@ const LocationMapPicker = ({ initialLat, initialLng, onSelect, disabled }) => {
         {markerPos && <Marker position={markerPos} />}
       </MapContainer>
 
-      {geoError && <p className="location-map-picker__error">{geoError}</p>}
+      {geoError && <p className="m-0 text-xs font-medium text-rose-600">{geoError}</p>}
 
-      {markerPos ? (
-        <p className="location-map-picker__hint">
-          Pin set: {markerPos[0].toFixed(5)}, {markerPos[1].toFixed(5)} — search, or click the map to move it
-        </p>
-      ) : (
-        <p className="location-map-picker__hint">
-          Search an address, click "Use My Location", or click anywhere on the map
-        </p>
-      )}
+      <p className="m-0 text-xs font-medium text-slate-500">
+        {markerPos
+          ? `Pin set: ${markerPos[0].toFixed(5)}, ${markerPos[1].toFixed(5)} — search, or click the map to move it`
+          : 'Search an address, click "Use My Location", or click anywhere on the map'}
+      </p>
     </div>
   );
-};
-
-const styles = {
-  searchWrap: { position: "relative", marginBottom: "10px" },
-  searchInput: {
-    width: "100%",
-    padding: "11px 14px",
-    borderRadius: "10px",
-    border: "1px solid #dce6f5",
-    fontSize: "14px",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  spinner: { position: "absolute", right: "12px", top: "10px", color: "#8fa3c0", fontSize: "16px" },
-  dropdown: {
-    position: "absolute",
-    top: "calc(100% + 4px)",
-    left: 0,
-    right: 0,
-    background: "#fff",
-    border: "1px solid #dce6f5",
-    borderRadius: "10px",
-    boxShadow: "0 8px 24px rgba(10,31,92,0.12)",
-    listStyle: "none",
-    margin: 0,
-    padding: "4px",
-    zIndex: 1000,
-    maxHeight: "220px",
-    overflowY: "auto",
-  },
-  dropdownItem: {
-    padding: "9px 10px",
-    fontSize: "12.5px",
-    color: "#0a1f5c",
-    borderRadius: "8px",
-    cursor: "pointer",
-    lineHeight: 1.4,
-  },
 };
 
 export default LocationMapPicker;
