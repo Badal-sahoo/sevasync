@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { addTaskUpdate, getTaskUpdates, getTaskById } from "../../api/tasks";
 import VolunteerLayout from "../../shared/VolunteerLayout";
+import usePolling from "../../shared/usePolling";
 
 const VolunteerTaskDetail = () => {
   const { taskId } = useParams();
@@ -26,10 +27,10 @@ const VolunteerTaskDetail = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTask();
-    fetchUpdates();
-  }, [taskId]);
+  usePolling(async () => {
+    await fetchTask();
+    await fetchUpdates();
+  }, 8000, [taskId]);
 
   const handleAddUpdate = async () => {
     if (!message.trim()) return;

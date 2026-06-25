@@ -11,6 +11,7 @@ import ToggleAvailability from "./ToggleAvailability";
 
 import { getVolunteerDashboard } from "../../api/volunteers";
 import { auth, logoutUser } from "../../auth/firebase";
+import usePolling from "../../shared/usePolling";
 
 const urgencyOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
@@ -69,9 +70,8 @@ const VolunteerDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (authReady) fetchDashboard();
-  }, [authReady]);
+  // Poll so new requests from NGOs appear without a manual refresh.
+  usePolling(() => (authReady ? fetchDashboard() : undefined), 10000, [authReady]);
 
   const handleTaskUpdate = (taskId, update) => {
     setTasks((prev) =>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getNgoRequests } from "../../api/ngo";
 import TaskCard from "./TaskCard";
 import { useNavigate } from "react-router-dom";
+import usePolling from "../../shared/usePolling";
 
 const TaskList = ({ ngoId, filter }) => {
   const [tasks, setTasks] = useState([]);
@@ -11,11 +12,9 @@ const TaskList = ({ ngoId, filter }) => {
 
   const navigate = useNavigate();
 
-  const fetchTasks = async (silent = false) => {
+  const loadTasks = async () => {
     try {
-      if (!silent) setLoading(true);
       const data = await getNgoRequests();
-
       const filteredTasks = data.filter((task) => {
         // "Pending" groups everything not yet accepted — including tasks where a
         // request was already sent (status "requested"), which otherwise matched
@@ -25,21 +24,19 @@ const TaskList = ({ ngoId, filter }) => {
         if (filter === "completed") return task.status === "completed";
         return true;
       });
-
       setTasks(filteredTasks);
     } catch (err) {
       console.error("Error loading tasks:", err);
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-    // Auto-refresh so volunteer accept/reject shows up without a manual reload.
-    const id = setInterval(() => fetchTasks(true), 10000);
-    return () => clearInterval(id);
-  }, [ngoId, filter]);
+  // Show the skeleton when switching tabs; polling refreshes silently after.
+  useEffect(() => { setLoading(true); }, [filter]);
+
+  // Auto-refresh so a volunteer's accept/reject shows up without a manual reload.
+  usePolling(loadTasks, 10000, [filter]);
 
   // Map this list's filter back to its sidebar tab so Task Detail can return here.
   const tabForFilter = { pending: "TaskList", assigned: "Assigned", completed: "Completed" };

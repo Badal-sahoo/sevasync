@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { getNgoDashboard } from "../../api/ngo";
+import usePolling from "../../shared/usePolling";
 
 const CARDS = [
   { key: "total_requests", title: "Total Requests", icon: "📋", value: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200", iconBg: "bg-blue-100" },
@@ -13,14 +14,15 @@ const StatsCards = ({ refreshKey = 0 }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
-    getNgoDashboard()
-      .then((d) => active && setStats(d))
-      .catch((e) => console.error(e))
-      .finally(() => active && setLoading(false));
-    return () => { active = false; };
-  }, [refreshKey]);
+  usePolling(async () => {
+    try {
+      setStats(await getNgoDashboard());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, 10000, [refreshKey]);
 
   if (loading) {
     return (

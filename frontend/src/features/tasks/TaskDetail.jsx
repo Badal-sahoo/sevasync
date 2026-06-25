@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { assignTask, completeTaskByNgo, cancelTaskByNgo, cancelRequest, getTaskById, getTaskUpdates } from "../../api/tasks";
 import VolunteerCard from "./VolunteerCard";
 import NgoLayout from "../../shared/NgoLayout";
+import usePolling from "../../shared/usePolling";
 
 const TaskDetail = () => {
   const { id } = useParams();
@@ -50,21 +51,13 @@ const TaskDetail = () => {
     }
   };
 
-  useEffect(() => {
-    const load = async () => {
-      await fetchTask();
-      await fetchUpdates();
-      setLoading(false);
-    };
-    load();
-    // Auto-refresh so a volunteer's accept/reject and new progress updates appear
-    // live without a manual reload.
-    const poll = setInterval(() => {
-      fetchTask();
-      fetchUpdates();
-    }, 8000);
-    return () => clearInterval(poll);
-  }, [id]);
+  // Auto-refresh so a volunteer's accept/reject and new progress updates appear
+  // live without a manual reload.
+  usePolling(async () => {
+    await fetchTask();
+    await fetchUpdates();
+    setLoading(false);
+  }, 8000, [id]);
 
   const handleAssign = async (volunteerId) => {
     try {
