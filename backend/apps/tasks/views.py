@@ -151,6 +151,25 @@ def cancel_task(request, task_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsNGO])
+def cancel_request(request, task_id):
+    volunteer_id = request.data.get("volunteer_id")
+    if not volunteer_id:
+        return Response({"error": "volunteer_id required"}, status=400)
+
+    try:
+        services.cancel_request(task_id, volunteer_id, request.user)
+    except LookupError as e:
+        return Response({"error": str(e)}, status=404)
+    except PermissionError as e:
+        return Response({"error": str(e)}, status=403)
+    except ValueError as e:
+        return Response({"error": str(e)}, status=400)
+
+    return Response({"message": "Request cancelled"})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsNGO])
 def complete_task(request, task_id):
     try:
         rewarded = services.complete_task_and_reward(task_id, request.user)

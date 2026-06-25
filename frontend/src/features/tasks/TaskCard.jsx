@@ -1,101 +1,91 @@
 import React from "react";
 
+const URGENCY = {
+  HIGH: { text: "text-rose-600", pill: "bg-rose-50 text-rose-600 border-rose-200", accent: "bg-rose-500" },
+  MEDIUM: { text: "text-amber-600", pill: "bg-amber-50 text-amber-600 border-amber-200", accent: "bg-amber-500" },
+  LOW: { text: "text-emerald-600", pill: "bg-emerald-50 text-emerald-600 border-emerald-200", accent: "bg-emerald-500" },
+};
+
+const STATUS_PILL = {
+  pending: "bg-slate-100 text-slate-600",
+  requested: "bg-amber-50 text-amber-700",
+  assigned: "bg-emerald-50 text-emerald-700",
+  completed: "bg-violet-50 text-violet-700",
+  cancelled: "bg-rose-50 text-rose-600",
+};
+
 const TaskCard = ({ task, onFindVolunteers }) => {
   const type = task.type || task.need_type || "unknown";
-
-  const urgencyMap = {
-    HIGH: { color: "#dc2626", bg: "#fff1f2", border: "#fecdd3", label: "HIGH" },
-    MEDIUM: { color: "#d97706", bg: "#fffbeb", border: "#fde68a", label: "MEDIUM" },
-    LOW: { color: "#059669", bg: "#f0fdf4", border: "#bbf7d0", label: "LOW" },
-  };
-
-  const urgency = urgencyMap[task.urgency] || urgencyMap.LOW;
+  const urgency = URGENCY[task.urgency] || URGENCY.LOW;
 
   const isAssigned = task.status === "assigned";
   const isCompleted = task.status === "completed";
+  const isCancelled = task.status === "cancelled";
   const isRequested = task.status === "requested" || task.assignment_status === "requested";
+  const clickable = isAssigned || isCompleted;
 
-  const handleClick = () => {
-    if (isAssigned || isCompleted) {
-      onFindVolunteers(task.id);
-    }
-  };
+  const open = () => onFindVolunteers(task.id);
 
   return (
     <div
-      style={{
-        ...styles.card,
-        cursor: isAssigned || isCompleted ? "pointer" : "default",
-      }}
-      onClick={handleClick}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 10px 28px rgba(10,31,92,0.1)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 2px 10px rgba(10,31,92,0.06)";
-      }}
+      onClick={() => clickable && open()}
+      className={`group flex min-h-[230px] flex-col overflow-hidden rounded-2xl border border-[#e2eaf5] bg-white shadow-[0_2px_10px_rgba(10,31,92,0.06)] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(10,31,92,0.1)] ${
+        clickable ? "cursor-pointer" : ""
+      }`}
     >
-      {/* TOP ACCENT BAR */}
-      <div style={{ ...styles.accentBar, background: urgency.color }} />
+      {/* top accent */}
+      <div className={`h-1.5 w-full ${urgency.accent}`} />
 
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h3 style={styles.title}>{type.toUpperCase()}</h3>
-        <span
-          style={{
-            ...styles.badge,
-            color: urgency.color,
-            background: urgency.bg,
-            border: `1px solid ${urgency.border}`,
-          }}
-        >
-          {urgency.label}
+      {/* header */}
+      <div className="flex items-start justify-between gap-3 px-5 pb-2 pt-5">
+        <div>
+          <h3 className="text-[17px] font-extrabold uppercase tracking-wide text-[#0a1f5c]">{type}</h3>
+          <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold capitalize ${STATUS_PILL[task.status] || STATUS_PILL.pending}`}>
+            {task.status}
+          </span>
+        </div>
+        <span className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold ${urgency.pill}`}>
+          {task.urgency || "LOW"}
         </span>
       </div>
 
-      {/* BODY */}
-      <div style={styles.body}>
-        <div style={styles.infoRow}>
-          <span style={styles.infoIcon}>📍</span>
-          <span style={styles.infoText}>
-            {task.location_name || task.location}
-          </span>
+      {/* body */}
+      <div className="flex flex-col gap-2.5 px-5 pb-4 pt-1">
+        <div className="flex items-center gap-2.5 text-sm text-[#5a7299]">
+          <span>📍</span>
+          <span className="line-clamp-1">{task.location_name || task.location || "Unknown"}</span>
         </div>
-        <div style={styles.infoRow}>
-          <span style={styles.infoIcon}>👥</span>
-          <span style={styles.infoText}>{task.total_people} people affected</span>
+        <div className="flex items-center gap-2.5 text-sm text-[#5a7299]">
+          <span>👥</span>
+          <span>{task.total_people} people affected</span>
         </div>
       </div>
 
-      {/* DIVIDER */}
-      <div style={styles.divider} />
-
-      {/* FOOTER */}
-      <div style={styles.footer}>
+      {/* footer */}
+      <div className="mt-auto border-t border-[#eef3fb] px-5 py-4">
         {isAssigned && task.assigned_volunteer && (
-          <div style={styles.assignedBox}>
-            <span style={styles.assignedDot} />
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Assigned to <strong>{task.assigned_volunteer.name}</strong>
           </div>
         )}
 
         {isRequested && !isAssigned && (
-          <div style={styles.pendingBox}>
-            <span>⏳</span> Request Sent — Awaiting Response
+          <div className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+            ⏳ Request Sent — Awaiting Response
           </div>
         )}
 
-        {!isRequested && !isAssigned && !isCompleted && (
+        {isCancelled && (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600">
+            Cancelled
+          </div>
+        )}
+
+        {!isRequested && !isAssigned && !isCompleted && !isCancelled && (
           <button
-            style={styles.button}
-            onClick={(e) => {
-              e.stopPropagation();
-              onFindVolunteers(task.id);
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#1d4ed8")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#2563eb")}
+            onClick={(e) => { e.stopPropagation(); open(); }}
+            className="w-full rounded-lg bg-blue-600 py-2.5 text-[13px] font-semibold text-white transition hover:bg-blue-700"
           >
             Find Volunteers →
           </button>
@@ -103,11 +93,8 @@ const TaskCard = ({ task, onFindVolunteers }) => {
 
         {isCompleted && (
           <button
-            style={styles.viewBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              onFindVolunteers(task.id);
-            }}
+            onClick={(e) => { e.stopPropagation(); open(); }}
+            className="w-full rounded-lg bg-violet-600 py-2.5 text-[13px] font-semibold text-white transition hover:bg-violet-700"
           >
             View Details →
           </button>
@@ -115,140 +102,6 @@ const TaskCard = ({ task, onFindVolunteers }) => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  card: {
-    background: "#ffffff",
-    color: "#0a1f5c",
-    borderRadius: "16px",
-    display: "flex",
-    flexDirection: "column",
-    minHeight: "240px",
-    boxShadow: "0 2px 10px rgba(10,31,92,0.06)",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
-    overflow: "hidden",
-    border: "1px solid #e2eaf5",
-  },
-
-  accentBar: {
-    height: "5px",
-    width: "100%",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    padding: "20px 22px 10px",
-  },
-
-  title: {
-    fontSize: "17px",
-    fontWeight: "700",
-    color: "#0a1f5c",
-    letterSpacing: "0.6px",
-    margin: 0,
-  },
-
-  badge: {
-    padding: "3px 10px",
-    borderRadius: "999px",
-    fontSize: "10px",
-    fontWeight: "700",
-    letterSpacing: "0.5px",
-  },
-
-  body: {
-    padding: "6px 22px 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-
-  infoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-
-  infoIcon: {
-    fontSize: "15px",
-  },
-
-  infoText: {
-    fontSize: "14px",
-    color: "#5a7299",
-  },
-
-  divider: {
-    height: "1px",
-    background: "#e8eef8",
-    margin: "0 22px",
-  },
-
-  footer: {
-    padding: "12px 18px 16px",
-    marginTop: "auto",
-  },
-
-  button: {
-    width: "100%",
-    padding: "9px",
-    background: "#2563eb",
-    border: "none",
-    borderRadius: "8px",
-    color: "white",
-    cursor: "pointer",
-    fontWeight: "600",
-    fontSize: "13px",
-    transition: "background 0.2s ease",
-  },
-
-  viewBtn: {
-    width: "100%",
-    padding: "9px",
-    background: "#7c3aed",
-    border: "none",
-    borderRadius: "8px",
-    color: "white",
-    cursor: "pointer",
-    fontWeight: "600",
-    fontSize: "13px",
-  },
-
-  pendingBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "8px 10px",
-    background: "#fffbeb",
-    color: "#92400e",
-    borderRadius: "8px",
-    fontSize: "12px",
-    fontWeight: "500",
-    border: "1px solid #fde68a",
-  },
-
-  assignedBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "8px 10px",
-    background: "#f0fdf4",
-    color: "#14532d",
-    borderRadius: "8px",
-    fontSize: "12px",
-    border: "1px solid #bbf7d0",
-  },
-
-  assignedDot: {
-    width: "7px",
-    height: "7px",
-    borderRadius: "50%",
-    background: "#22c55e",
-    flexShrink: 0,
-  },
 };
 
 export default TaskCard;

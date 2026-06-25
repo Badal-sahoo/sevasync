@@ -370,6 +370,20 @@ class AssignmentWorkflowTests(Base):
         self.assertEqual(a.status, "withdrawn")
         self.assertEqual(self.task.status, "pending")
 
+    def test_ngo_cancel_request(self):
+        self._setup()
+        self.auth("ngo@x.com")
+        self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": self.vol.id}, format="json")
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, "requested")
+        # NGO retracts the request to that volunteer
+        r = self.client.post(f"/api/tasks/{self.task.id}/cancel-request/", {"volunteer_id": self.vol.id}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        a = Assignment.objects.get(task=self.task, volunteer=self.vol)
+        self.assertEqual(a.status, "cancelled")
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, "pending")  # back to the pool
+
     def test_cancel_task(self):
         self._setup()
         self.auth("ngo@x.com")

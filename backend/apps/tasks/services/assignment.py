@@ -86,6 +86,41 @@ def respond_to_assignment(task_id, volunteer, action):
         raise ValueError("Invalid action. Must be 'accept' or 'reject'")
 
 
+def cancel_request(task_id, volunteer_id, requesting_user):
+    """NGO retracts its request to a specific volunteer.
+
+    The volunteer's active (requested/accepted) assignment is cancelled; the task
+    returns to the pool if no other volunteer is still engaged. Use this to undo a
+    single request without cancelling the whole task.
+    """
+    try:
+        task = Task.objects.get(id=task_id)
+    except Task.DoesNotExist:
+        raise LookupError("Task not found")
+
+    if task.ngo != requesting_user:
+        raise PermissionError("Not authorized")
+
+    assignment = (
+        Assignment.objects
+        .filter(task=task, volunteer_id=volunteer_id, status__in=("requested", "accepted"))
+        .order_by("-id")
+        .first()
+    )
+    if not assignment:
+        raise ValueError("No active request for this volunteer")
+
+    assignment.status = "cancelled"
+    assignment.save()
+
+    still_active = Assignment.objects.filter(
+        task=task, status__in=("requested", "accepted")
+    ).exists()
+    if not still_active and task.status in ("requested", "assigned"):
+        task.status = "pending"
+        task.save()
+
+
 def withdraw_assignment(assignment_id, volunteer):
     """Volunteer withdraws from an assignment they own."""
     try:

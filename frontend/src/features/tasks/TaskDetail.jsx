@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { assignTask, completeTaskByNgo, getTaskById, getTaskUpdates } from "../../api/tasks";
+import { assignTask, completeTaskByNgo, cancelTaskByNgo, cancelRequest, getTaskById, getTaskUpdates } from "../../api/tasks";
 import VolunteerCard from "./VolunteerCard";
 import NgoLayout from "../../shared/NgoLayout";
 
@@ -79,6 +79,27 @@ const TaskDetail = () => {
     }
   };
 
+  const handleCancelTask = async () => {
+    if (!window.confirm("Cancel this entire task? This cannot be undone.")) return;
+    try {
+      await cancelTaskByNgo(id);
+      await fetchTask();
+      await fetchUpdates();
+    } catch (err) {
+      alert(err?.response?.data?.error || "Failed to cancel task");
+    }
+  };
+
+  const handleCancelRequest = async (volunteerId) => {
+    try {
+      await cancelRequest(id, volunteerId);
+      await fetchTask();
+      await fetchUpdates();
+    } catch (err) {
+      alert(err?.response?.data?.error || "Failed to cancel request");
+    }
+  };
+
   if (loading) return (
     <NgoLayout active="TaskList" title="Task Detail" onBack={() => navigate(-1)}>
       <div style={styles.loadingWrap}><div style={styles.loadingSpinner}>Loading task...</div></div>
@@ -143,13 +164,18 @@ const TaskDetail = () => {
       {acceptedVolunteers.length > 0 && (
         <div style={styles.assignedBanner}>
           <div style={styles.bannerIcon}>✅</div>
-          <div>
-            <h4 style={styles.bannerTitle}>
-              Working on this task ({acceptedVolunteers.length})
-            </h4>
-            <p style={styles.bannerSub}>
-              {acceptedVolunteers.map((v) => `👤 ${v.name}`).join("   ")}
-            </p>
+          <div style={{ flex: 1 }}>
+            <h4 style={styles.bannerTitle}>Working on this task ({acceptedVolunteers.length})</h4>
+            {acceptedVolunteers.map((v) => (
+              <div key={v.id} style={styles.volRow}>
+                <span style={styles.bannerSub}>👤 {v.name}</span>
+                {canAssign && (
+                  <button style={styles.cancelLink} onClick={() => handleCancelRequest(v.id)}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -157,13 +183,18 @@ const TaskDetail = () => {
       {requestedVolunteers.length > 0 && (
         <div style={styles.pendingBanner}>
           <div style={styles.bannerIcon}>📩</div>
-          <div>
-            <h4 style={styles.bannerTitle}>
-              Awaiting response ({requestedVolunteers.length})
-            </h4>
-            <p style={styles.bannerSub}>
-              {requestedVolunteers.map((v) => `👤 ${v.name}`).join("   ")}
-            </p>
+          <div style={{ flex: 1 }}>
+            <h4 style={styles.bannerTitle}>Awaiting response ({requestedVolunteers.length})</h4>
+            {requestedVolunteers.map((v) => (
+              <div key={v.id} style={styles.volRow}>
+                <span style={styles.bannerSub}>👤 {v.name}</span>
+                {canAssign && (
+                  <button style={styles.cancelLink} onClick={() => handleCancelRequest(v.id)}>
+                    Cancel request
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -233,12 +264,17 @@ const TaskDetail = () => {
         </div>
       </div>
 
-      {/* COMPLETE BUTTON — available once at least one volunteer is on it */}
-      {acceptedVolunteers.length > 0 && !isCompleted && !isCancelled && (
-        <div style={styles.completeWrap}>
-          <button style={styles.completeBtn} onClick={handleComplete}>
-            ✓ Mark Task as Completed
+      {/* ACTION BAR — cancel always available while open; complete once staffed */}
+      {!isCompleted && !isCancelled && (
+        <div style={styles.actionBar}>
+          <button style={styles.cancelBtn} onClick={handleCancelTask}>
+            ✕ Cancel Task
           </button>
+          {acceptedVolunteers.length > 0 && (
+            <button style={styles.completeBtn} onClick={handleComplete}>
+              ✓ Mark Task as Completed
+            </button>
+          )}
         </div>
       )}
 
@@ -279,6 +315,8 @@ const styles = {
   bannerTitle: { margin: "0 0 3px", fontSize: "14px", fontWeight: "700", color: "#0a1f5c" },
   bannerSub: { margin: 0, fontSize: "13px", color: "#5a7299" },
   bannerName: { margin: "4px 0 0", fontSize: "13px", fontWeight: "500", color: "#0a1f5c" },
+  volRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginTop: "4px" },
+  cancelLink: { background: "transparent", border: "none", color: "#dc2626", fontSize: "12px", fontWeight: 700, cursor: "pointer", padding: "2px 6px", borderRadius: "6px" },
   section: { display: "flex", flexDirection: "column", gap: "14px" },
   sectionTitle: { fontSize: "15px", fontWeight: "700", color: "#0a1f5c", margin: 0 },
   volGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: "14px" },
@@ -295,7 +333,9 @@ const styles = {
   updateTime: { fontSize: "11px", color: "#8fa3c0" },
   updateMessage: { fontSize: "13px", color: "#5a7299", margin: 0, lineHeight: 1.5 },
   completeWrap: { display: "flex", justifyContent: "flex-end" },
+  actionBar: { display: "flex", justifyContent: "flex-end", gap: "12px" },
   completeBtn: { padding: "12px 28px", background: "#059669", border: "none", borderRadius: "10px", color: "white", cursor: "pointer", fontWeight: "700", fontSize: "14px", boxShadow: "0 4px 12px rgba(5,150,105,0.25)", transition: "all 0.2s" },
+  cancelBtn: { padding: "12px 24px", background: "transparent", border: "1.5px solid #ef4444", borderRadius: "10px", color: "#ef4444", cursor: "pointer", fontWeight: "700", fontSize: "14px", transition: "all 0.2s" },
 };
 
 export default TaskDetail;
