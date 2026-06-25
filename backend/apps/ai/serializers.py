@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Need
+from apps.needs.models import Need
+
 
 class NeedSerializer(serializers.ModelSerializer):
     class Meta:

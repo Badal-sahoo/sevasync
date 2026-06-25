@@ -1,41 +1,50 @@
-# 🔹 Environment
+# ───────────────────────── Secrets / environment ─────────────────────────
 .env
+.env.*
 *.local
+# ...but DO track the example templates
+!.env.example
+!**/.env.example
 
-# 🔹 Python / Django
+# Firebase service-account key (NEVER commit)
+*firebase-adminsdk*.json
+backend/sevasync-*.json
+
+# ───────────────────────── Python / Django ───────────────────────────────
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.egg-info/
 
 venv/
 env/
+.venv/
 
 db.sqlite3
+db.sqlite3-journal
 media/
+staticfiles/
+backend/staticfiles/
 
-# 🔹 Logs
-logs
+# ───────────────────────── Node / React (Vite) ───────────────────────────
+node_modules/
+dist/
+dist-ssr/
+.vite/
+
+# ───────────────────────── Logs ──────────────────────────────────────────
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-# 🔹 Node / React
-node_modules/
-dist/
-dist-ssr/
-
-# 🔹 Firebase keys (IMPORTANT 🔐)
-sevasync-425d0-firebase-adminsdk-fbsvc-aac40031af.json
-
-# 🔹 Editor / OS files
+# ───────────────────────── Editor / OS ───────────────────────────────────
+.DS_Store
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj

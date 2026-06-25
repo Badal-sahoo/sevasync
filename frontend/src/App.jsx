@@ -1,10 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Login from './pages/Login';
-import NgoDashboard from './pages/NgoDashboard'; 
-import VolunteerDashboard from './pages/VolunteerDashboard';
-import TaskDetail from "./pages/TaskDetail";
-import VolunteerTaskDetail from "./pages/VolunteerTaskDetail";
+import Login from './features/auth/Login';
+import NgoDashboard from './features/ngo/NgoDashboard';
+import VolunteerDashboard from './features/volunteer/VolunteerDashboard';
+import TaskDetail from './features/tasks/TaskDetail';
+import VolunteerTaskDetail from './features/volunteer/VolunteerTaskDetail';
 
 function App() {
   return (

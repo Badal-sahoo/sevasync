@@ -6,8 +6,10 @@ dj-database-url
 python-dotenv
 firebase-admin
 gunicorn
+whitenoise
 numpy
 scikit-learn
 google-genai
 geopy
 requests
+certifi
