@@ -137,6 +137,27 @@ class NgoDashboardTests(Base):
         self.assertEqual(d["total_tasks"], 1)
         self.assertEqual(d["urgent_tasks"], 1)
 
+    def test_dashboard_counts_drop_after_completion(self):
+        ngo = self.make_ngo()
+        task = Task.objects.create(ngo=ngo, need_type="food", urgency="HIGH", people_count=3,
+                                   status="pending", latitude=12.9716, longitude=77.5946)
+        vol = self.make_vol("v1@x.com", "Vol", lat=12.972, lon=77.595)
+        self.auth("ngo@x.com")
+        before = self.client.get("/api/ngo/dashboard/").json()
+        self.assertEqual(before["total_tasks"], 1)
+        self.assertEqual(before["urgent_tasks"], 1)
+        self.assertEqual(before["completed_tasks"], 0)
+        # assign -> accept -> complete
+        self.client.post(f"/api/tasks/{task.id}/assign/", {"volunteer_id": vol.id}, format="json")
+        self.auth("v1@x.com")
+        self.client.post(f"/api/tasks/{task.id}/respond/", {"action": "accept"}, format="json")
+        self.auth("ngo@x.com")
+        self.client.post(f"/api/tasks/{task.id}/complete/", {}, format="json")
+        after = self.client.get("/api/ngo/dashboard/").json()
+        self.assertEqual(after["total_tasks"], 0, "active total must drop after completion")
+        self.assertEqual(after["urgent_tasks"], 0, "urgent must drop after completion")
+        self.assertEqual(after["completed_tasks"], 1)
+
     def test_requests_list_and_filter(self):
         ngo = self.make_ngo()
         Task.objects.create(ngo=ngo, need_type="food", urgency="HIGH", people_count=3, status="pending")

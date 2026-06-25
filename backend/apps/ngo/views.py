@@ -11,11 +11,15 @@ from apps.users.permissions import IsNGO
 def ngo_dashboard(request):
     try:
         user = request.user
+        # "Total" and "Urgent" reflect OUTSTANDING work, so finishing a task moves
+        # it out of those counters and into "Completed" (active + completed = all).
+        _finished = ("completed", "cancelled")
+        ngo_tasks = Task.objects.filter(ngo=user)
         return Response({
             "total_requests": Need.objects.filter(ngo=user).count(),
-            "total_tasks": Task.objects.filter(ngo=user).count(),
-            "completed_tasks": Task.objects.filter(ngo=user, status="completed").count(),
-            "urgent_tasks": Task.objects.filter(ngo=user, urgency="HIGH").count(),
+            "total_tasks": ngo_tasks.exclude(status__in=_finished).count(),
+            "completed_tasks": ngo_tasks.filter(status="completed").count(),
+            "urgent_tasks": ngo_tasks.filter(urgency="HIGH").exclude(status__in=_finished).count(),
             "active_volunteers": Assignment.objects.filter(
                 task__ngo=user, status="accepted"
             ).values('volunteer').distinct().count(),
