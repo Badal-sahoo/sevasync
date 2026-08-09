@@ -31,6 +31,11 @@ class Task(models.Model):
     source_needs = models.ManyToManyField(Need, blank=True, related_name='source_tasks')
     created_at = models.DateTimeField(default=timezone.now)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['ngo', 'status']),
+        ]
+
 
 class Assignment(models.Model):
     class Status(models.TextChoices):
