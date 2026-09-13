@@ -162,16 +162,26 @@ CSV rows → `Need`s → tasks, in `apps/needs/services.py` + `apps/ai/pipeline/
 `apps/matching/utils.py` scores every available volunteer for a task (single
 annotated query, no N+1). Constants live in `core/constants/matching.py`.
 
+Each signal is scored independently on its own **0–100 percentage scale**, then
+combined with fixed importance weights that sum to 1.0 — so the final score is
+always directly readable as a mark out of 100:
+
 ```
-score = skill_match + urgency_bonus + distance_score + performance_score
+score = skill_pct   × WEIGHT_SKILL         (40%)
+      + urgency_pct  × WEIGHT_URGENCY       (20%)
+      + distance_pct × WEIGHT_DISTANCE      (20%)
+      + performance_pct × WEIGHT_PERFORMANCE(20%)
 ```
 
-- **Skill** — full match (need type ∈ skills) or partial keyword match.
-- **Urgency** — HIGH adds more than MEDIUM.
-- **Distance** — haversine; volunteers beyond `MAX_MATCHING_DISTANCE_KM` (10 km) are
-  excluded; nearer = higher score.
-- **Performance** — completed/total assignment ratio (new volunteers get a neutral score
-  so they aren't permanently excluded).
+- **Skill** — matched against a fixed taxonomy (`core/constants/skills.py`) of
+  HIGH/MEDIUM/LOW skills per need type: 100% for a HIGH-tier skill, 60% for
+  MEDIUM, 30% for LOW, 0% for none. Volunteers can only pick skills from this
+  taxonomy (validated server-side), so there's no free-text/substring matching.
+- **Urgency** — 100% for a HIGH-urgency task, 50% for MEDIUM, 0% for LOW.
+- **Distance** — haversine; volunteers beyond `MAX_MATCHING_DISTANCE_KM` (10 km)
+  are excluded outright; within that, closer bands score a higher percentage.
+- **Performance** — completed/total assignment ratio as a percentage (new
+  volunteers get a neutral 50% so they aren't permanently excluded).
 
 Volunteers who are unavailable or already on an accepted task are filtered out.
 

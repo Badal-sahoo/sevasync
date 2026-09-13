@@ -1,40 +1,55 @@
-import { useEffect, useState } from "react";
-import { getVolunteerProfile, updateVolunteerProfile } from "../../api/volunteers";
+import { useEffect, useMemo, useState } from "react";
+import { getVolunteerProfile, updateVolunteerProfile, getSkillOptions } from "../../api/volunteers";
 import LocationMapPicker from "./LocationMapPicker";
 
-const parseSkillsInput = (value) =>
-  value
-    .split(",")
-    .map((skill) => skill.trim())
-    .filter(Boolean);
+const TIER_STYLE = {
+  HIGH: { label: "High priority", dot: "bg-rose-500", text: "text-rose-600" },
+  MEDIUM: { label: "Medium priority", dot: "bg-amber-500", text: "text-amber-600" },
+  LOW: { label: "Low priority", dot: "bg-emerald-500", text: "text-emerald-600" },
+};
+const TIER_ORDER = ["HIGH", "MEDIUM", "LOW"];
 
 const VolunteerProfileCard = ({ refreshKey = 0 }) => {
   const [profile, setProfile] = useState({ name: "", location: "", skills: [] });
   const [coords, setCoords] = useState({ lat: null, lng: null });
-  const [skillsInput, setSkillsInput] = useState("");
+  const [selectedSkills, setSelectedSkills] = useState([]);
+  const [skillOptions, setSkillOptions] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Flat id -> label map, built once the taxonomy loads, so the selected-skill
+  // chips can show a human label instead of a raw skill id.
+  const skillLabels = useMemo(() => {
+    const map = {};
+    Object.values(skillOptions).forEach((tiers) => {
+      Object.values(tiers).forEach((skills) => {
+        skills.forEach((s) => { map[s.id] = s.label; });
+      });
+    });
+    return map;
+  }, [skillOptions]);
+
   useEffect(() => {
     let isActive = true;
-    const fetchProfile = async () => {
+    const fetchAll = async () => {
       setLoading(true);
       setMessage("");
       try {
-        const data = await getVolunteerProfile();
+        const [data, options] = await Promise.all([getVolunteerProfile(), getSkillOptions()]);
         if (!isActive) return;
         const skills = Array.isArray(data?.skills) ? data.skills : [];
         setProfile({ name: data?.name || "", location: data?.location || "", skills });
         setCoords({ lat: data?.latitude ?? null, lng: data?.longitude ?? null });
-        setSkillsInput(skills.join(", "));
+        setSelectedSkills(skills);
+        setSkillOptions(options || {});
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {
         if (isActive) setLoading(false);
       }
     };
-    fetchProfile();
+    fetchAll();
     return () => { isActive = false; };
   }, [refreshKey]);
 
@@ -43,13 +58,19 @@ const VolunteerProfileCard = ({ refreshKey = 0 }) => {
     setProfile((prev) => ({ ...prev, location: `${lat.toFixed(5)}, ${lng.toFixed(5)}` }));
   };
 
+  const toggleSkill = (skillId) => {
+    setSelectedSkills((prev) =>
+      prev.includes(skillId) ? prev.filter((id) => id !== skillId) : [...prev, skillId]
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setMessage("");
     try {
       const updated = await updateVolunteerProfile({
-        skills: parseSkillsInput(skillsInput),
+        skills: selectedSkills,
         location: profile.location.trim(),
         latitude: coords.lat,
         longitude: coords.lng,
@@ -57,11 +78,12 @@ const VolunteerProfileCard = ({ refreshKey = 0 }) => {
       const volunteer = updated?.data ?? updated;
       const skills = Array.isArray(volunteer?.skills) ? volunteer.skills : [];
       setProfile({ name: volunteer?.name || profile.name, location: volunteer?.location || profile.location, skills });
-      setSkillsInput(skills.join(", "));
+      setSelectedSkills(skills);
       setMessage("Profile updated successfully ✅");
     } catch (error) {
       console.error("Update error:", error);
-      setMessage("Update failed ❌");
+      const apiMessage = error?.response?.data?.skills?.[0];
+      setMessage(apiMessage ? `Update failed: ${apiMessage}` : "Update failed ❌");
     } finally {
       setSaving(false);
     }
@@ -99,20 +121,42 @@ const VolunteerProfileCard = ({ refreshKey = 0 }) => {
 
         <div className="flex flex-col gap-1.5">
           <span className="text-[13px] font-bold text-slate-600">Skills</span>
-          <textarea
-            className="min-h-[90px] w-full resize-y rounded-xl border-[1.5px] border-[#e2eaf5] bg-slate-50 px-3.5 py-2.5 text-sm text-[#0a1f5c] outline-none transition focus:border-blue-500 focus:bg-white focus:ring-[3px] focus:ring-blue-500/15"
-            placeholder="e.g. First Aid, Cooking, Logistics"
-            value={skillsInput}
-            onChange={(e) => setSkillsInput(e.target.value)}
-            disabled={saving}
-          />
+          <p className="text-xs text-slate-400 -mt-0.5">Pick from the fixed skill list below — this is what the matching engine scores against.</p>
+          <div className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded-xl border-[1.5px] border-[#e2eaf5] bg-slate-50 p-3.5">
+            {Object.entries(skillOptions).map(([needType, tiers]) => (
+              <div key={needType} className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-[#0a1f5c]">{needType}</span>
+                <div className="flex flex-col gap-1">
+                  {TIER_ORDER.filter((tier) => tiers[tier]?.length).map((tier) =>
+                    tiers[tier].map((skill) => (
+                      <label
+                        key={skill.id}
+                        className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-[#0a1f5c] hover:bg-white"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedSkills.includes(skill.id)}
+                          onChange={() => toggleSkill(skill.id)}
+                          disabled={saving}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                        <span className={`h-1.5 w-1.5 rounded-full ${TIER_STYLE[tier].dot}`} />
+                        <span className="flex-1">{skill.label}</span>
+                        <span className={`text-[10px] font-bold uppercase ${TIER_STYLE[tier].text}`}>{tier}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {profile.skills.length > 0 && (
+        {selectedSkills.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {profile.skills.map((skill, i) => (
-              <span key={i} className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[13px] font-bold text-blue-600">
-                {skill}
+            {selectedSkills.map((skillId) => (
+              <span key={skillId} className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[13px] font-bold text-blue-600">
+                {skillLabels[skillId] || skillId}
               </span>
             ))}
           </div>

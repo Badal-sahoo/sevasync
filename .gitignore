@@ -52,3 +52,6 @@ pnpm-debug.log*
 *.sw?
 .git-backup
 .claude
+
+# ───────────────────────── Personal working docs ─────────────────────────
+docs/

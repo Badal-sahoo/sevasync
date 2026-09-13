@@ -10,6 +10,11 @@ export const getVolunteerProfile = async () => {
   return res.data;
 };
 
+export const getSkillOptions = async () => {
+  const res = await API.get("/volunteers/skills/");
+  return res.data;
+};
+
 export const getVolunteerPoints = async () => {
   const res = await API.get("/volunteers/points/");
   return res.data;

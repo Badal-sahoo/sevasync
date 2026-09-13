@@ -3,35 +3,46 @@ from django.db.models import Count, Q
 from core.constants.matching import (
     MAX_MATCHING_DISTANCE_KM,
     DISTANCE_NEAR_KM, DISTANCE_MEDIUM_KM, DISTANCE_FAR_KM,
-    SCORE_MAX_SKILL, SCORE_MAX_URGENCY, SCORE_MAX_DISTANCE, SCORE_MAX_PERFORMANCE,
-    SCORE_PARTIAL_SKILL,
+    WEIGHT_SKILL, WEIGHT_URGENCY, WEIGHT_DISTANCE, WEIGHT_PERFORMANCE,
+    SKILL_PCT_HIGH, SKILL_PCT_MEDIUM, SKILL_PCT_LOW, SKILL_PCT_NONE,
+    URGENCY_PCT_HIGH, URGENCY_PCT_MEDIUM, URGENCY_PCT_LOW,
+    DISTANCE_PCT_NEAR, DISTANCE_PCT_MEDIUM, DISTANCE_PCT_FAR, DISTANCE_PCT_BEYOND,
+    PERFORMANCE_PCT_NEW_VOLUNTEER,
 )
 from core.constants.clustering import EARTH_RADIUS_KM
+from core.constants.skills import SKILL_TAXONOMY, HIGH, MEDIUM, LOW
 
 
-def score_volunteer_for_task(task, volunteer):
-    score = 0
-    task_needs = task.need_type.lower()
+def get_skill_pct(task, volunteer):
+    """0-100: how well the volunteer's skills fit this task's need type.
 
-    if isinstance(volunteer.skills, list):
-        volunteer_skills = " ".join(volunteer.skills).lower()
-    else:
-        volunteer_skills = str(volunteer.skills).lower()
+    Exact match against the fixed taxonomy — the highest tier the volunteer
+    holds wins. No partial-credit substring matching.
+    """
+    volunteer_skills = set(volunteer.skills) if isinstance(volunteer.skills, list) else set()
+    tiers = SKILL_TAXONOMY.get(task.need_type, {})
 
-    if task_needs in volunteer_skills:
-        score += SCORE_MAX_SKILL
-    else:
-        task_keywords = task_needs.split()
-        matches = sum(1 for word in task_keywords if word in volunteer_skills)
-        if matches > 0:
-            score += SCORE_PARTIAL_SKILL
+    high_ids = {sid for sid, _ in tiers.get(HIGH, [])}
+    medium_ids = {sid for sid, _ in tiers.get(MEDIUM, [])}
+    low_ids = {sid for sid, _ in tiers.get(LOW, [])}
 
-    if task.urgency.lower() == "high":
-        score += SCORE_MAX_URGENCY
-    elif task.urgency.lower() == "medium":
-        score += SCORE_MAX_URGENCY // 2
+    if volunteer_skills & high_ids:
+        return SKILL_PCT_HIGH
+    if volunteer_skills & medium_ids:
+        return SKILL_PCT_MEDIUM
+    if volunteer_skills & low_ids:
+        return SKILL_PCT_LOW
+    return SKILL_PCT_NONE
 
-    return score
+
+def get_urgency_pct(task):
+    """0-100: how urgent this task is."""
+    urgency = task.urgency.lower()
+    if urgency == "high":
+        return URGENCY_PCT_HIGH
+    if urgency == "medium":
+        return URGENCY_PCT_MEDIUM
+    return URGENCY_PCT_LOW
 
 
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -42,14 +53,23 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return EARTH_RADIUS_KM * 2 * math.asin(math.sqrt(a))
 
 
-def get_distance_score(distance):
+def get_distance_pct(distance):
+    """0-100: how close the volunteer is, banded rather than linear."""
     if distance <= DISTANCE_NEAR_KM:
-        return SCORE_MAX_DISTANCE
-    elif distance <= DISTANCE_MEDIUM_KM:
-        return 15
-    elif distance <= DISTANCE_FAR_KM:
-        return 10
-    return 0
+        return DISTANCE_PCT_NEAR
+    if distance <= DISTANCE_MEDIUM_KM:
+        return DISTANCE_PCT_MEDIUM
+    if distance <= DISTANCE_FAR_KM:
+        return DISTANCE_PCT_FAR
+    return DISTANCE_PCT_BEYOND
+
+
+def get_performance_pct(volunteer):
+    """0-100: this volunteer's completed/total assignment ratio, as a percentage."""
+    if volunteer.total_count == 0:
+        # New volunteer — neutral score so they aren't permanently excluded.
+        return PERFORMANCE_PCT_NEW_VOLUNTEER
+    return (volunteer.completed_count / volunteer.total_count) * 100
 
 
 def get_matched_volunteers(task):
@@ -85,14 +105,20 @@ def get_matched_volunteers(task):
         if distance > MAX_MATCHING_DISTANCE_KM:
             continue
 
-        base_score = score_volunteer_for_task(task, volunteer)
-        distance_score = get_distance_score(distance)
+        skill_pct = get_skill_pct(task, volunteer)
+        urgency_pct = get_urgency_pct(task)
+        distance_pct = get_distance_pct(distance)
+        performance_pct = get_performance_pct(volunteer)
 
-        if volunteer.total_count == 0:
-            # New volunteer — neutral score so they aren't permanently excluded.
-            performance_score = 0.5 * SCORE_MAX_PERFORMANCE
-        else:
-            performance_score = (volunteer.completed_count / volunteer.total_count) * SCORE_MAX_PERFORMANCE
+        # Every signal above is already 0-100, and the four weights sum to
+        # 1.0 — so this sum is always directly a score out of 100, with no
+        # separate normalization step needed anywhere else.
+        final_score = (
+            skill_pct * WEIGHT_SKILL
+            + urgency_pct * WEIGHT_URGENCY
+            + distance_pct * WEIGHT_DISTANCE
+            + performance_pct * WEIGHT_PERFORMANCE
+        )
 
         matched_volunteers.append({
             "volunteer_id": volunteer.id,
@@ -100,7 +126,7 @@ def get_matched_volunteers(task):
             "skills": volunteer.skills,
             "location": volunteer.location,
             "distance_km": round(distance, 2),
-            "score": round(base_score + distance_score + performance_score, 2),
+            "score": round(final_score, 2),
         })
 
     matched_volunteers.sort(key=lambda x: x["score"], reverse=True)

@@ -63,7 +63,7 @@ class Base(TestCase):
         u = User.objects.get(email=email)
         v = Volunteer.objects.get(user=u)
         v.latitude, v.longitude = lat, lon
-        v.skills = skills if skills is not None else ["food", "medical"]
+        v.skills = skills if skills is not None else ["home_cooking", "first_aid"]
         v.total_points = points
         v.save()
         return v
@@ -264,8 +264,8 @@ class MatchingTests(Base):
         ngo = self.make_ngo()
         task = Task.objects.create(ngo=ngo, need_type="food", urgency="HIGH", people_count=3,
                                    status="pending", latitude=12.9716, longitude=77.5946)
-        self.make_vol("v1@x.com", "Near Vol", lat=12.9720, lon=77.5950, skills=["food"])
-        self.make_vol("v2@x.com", "Far Vol", lat=40.0, lon=-70.0, skills=["food"])
+        self.make_vol("v1@x.com", "Near Vol", lat=12.9720, lon=77.5950, skills=["home_cooking"])
+        self.make_vol("v2@x.com", "Far Vol", lat=40.0, lon=-70.0, skills=["home_cooking"])
         results = get_matched_volunteers(task)
         names = [r["name"] for r in results]
         self.assertIn("Near Vol", names)
@@ -275,7 +275,7 @@ class MatchingTests(Base):
         ngo = self.make_ngo()
         task = Task.objects.create(ngo=ngo, need_type="food", urgency="HIGH", people_count=3,
                                    status="pending", latitude=12.9716, longitude=77.5946)
-        self.make_vol("v1@x.com", "Near Vol", lat=12.9720, lon=77.5950, skills=["food"])
+        self.make_vol("v1@x.com", "Near Vol", lat=12.9720, lon=77.5950, skills=["home_cooking"])
         self.auth("ngo@x.com")
         r = self.client.get(f"/api/tasks/{task.id}/progress/")
         self.assertEqual(r.status_code, 200, r.content)
@@ -289,7 +289,7 @@ class AssignmentWorkflowTests(Base):
         self.task = Task.objects.create(ngo=self.ngo, need_type="food", urgency="HIGH",
                                         people_count=3, status="pending",
                                         latitude=12.9716, longitude=77.5946)
-        self.vol = self.make_vol("v1@x.com", "Vol One", lat=12.972, lon=77.595, skills=["food"])
+        self.vol = self.make_vol("v1@x.com", "Vol One", lat=12.972, lon=77.595, skills=["home_cooking"])
 
     def test_full_assign_accept_progress_complete(self):
         self._setup()
@@ -395,7 +395,7 @@ class AssignmentWorkflowTests(Base):
 
     def test_multiple_volunteers_one_task_no_status_downgrade(self):
         self._setup()
-        vol2 = self.make_vol("v2@x.com", "Vol Two", lat=12.972, lon=77.595, skills=["food"])
+        vol2 = self.make_vol("v2@x.com", "Vol Two", lat=12.972, lon=77.595, skills=["home_cooking"])
         self.auth("ngo@x.com")
         # request vol1, vol1 accepts -> task assigned
         self.client.post(f"/api/tasks/{self.task.id}/assign/", {"volunteer_id": self.vol.id}, format="json")
@@ -479,12 +479,12 @@ class VolunteerSelfServiceTests(Base):
         self.make_vol("v@x.com", "Vol")
         self.auth("v@x.com")
         r = self.client.patch("/api/volunteers/me/",
-                              {"skills": ["water"], "location": "Delhi", "latitude": 28.6, "longitude": 77.2},
+                              {"skills": ["water_purification"], "location": "Delhi", "latitude": 28.6, "longitude": 77.2},
                               format="json")
         self.assertEqual(r.status_code, 200, r.content)
         v = Volunteer.objects.get(user__email="v@x.com")
         self.assertEqual(v.latitude, 28.6)
-        self.assertEqual(v.skills, ["water"])
+        self.assertEqual(v.skills, ["water_purification"])
 
     def test_update_availability(self):
         self.make_vol("v@x.com", "Vol")
@@ -498,7 +498,7 @@ class VolunteerSelfServiceTests(Base):
         self.make_vol("v@x.com", "Vol", points=10)
         self.auth("v@x.com")
         r = self.client.patch("/api/volunteers/me/",
-                              {"skills": ["food"], "location": "X",
+                              {"skills": ["home_cooking"], "location": "X",
                                "latitude": 12.9, "longitude": 77.5,
                                "total_points": 999999, "tasks_completed": 555},
                               format="json")

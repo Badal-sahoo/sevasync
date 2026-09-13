@@ -6,6 +6,7 @@ from .views import (
     update_volunteer_profile,
     update_availability,
     get_volunteer_profile,
+    skill_options,
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     path('points/', volunteer_points_view),
     path('me/', update_volunteer_profile),
     path('availability/', update_availability),
+    path('skills/', skill_options),
 ]

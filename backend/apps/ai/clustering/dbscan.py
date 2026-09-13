@@ -27,3 +27,4 @@ def cluster_needs_geographically(needs):
         clusters[label].append(valid_needs[i])
 
     return clusters
+ 

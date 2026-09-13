@@ -82,25 +82,26 @@ class FullJourney(TestCase):
         p("=" * 70)
 
         # Alice: skilled in food + near the task; Bob: generic skills + near
+        # (skill ids come from the fixed taxonomy in core/constants/skills.py)
         self.auth("alice@vol.com")
         r = c.patch("/api/volunteers/me/",
-                    {"skills": ["food", "medical"], "location": "MG Road",
+                    {"skills": ["home_cooking", "first_aid"], "location": "MG Road",
                      "latitude": 12.9720, "longitude": 77.5950}, format="json")
         assert r.status_code == 200, r.content
-        ok("Alice profile updated", "skills=[food, medical], pinned on map")
+        ok("Alice profile updated", "skills=[home_cooking, first_aid], pinned on map")
         r = c.patch("/api/volunteers/availability/", {"availability": True}, format="json")
         assert r.status_code == 200
         ok("Alice availability", "Available")
 
         self.auth("bob@vol.com")
         r = c.patch("/api/volunteers/me/",
-                    {"skills": ["logistics"], "location": "Indiranagar",
+                    {"skills": ["general_labor"], "location": "Indiranagar",
                      "latitude": 12.9750, "longitude": 77.5980}, format="json")
         assert r.status_code == 200, r.content
-        ok("Bob profile updated", "skills=[logistics], pinned on map")
+        ok("Bob profile updated", "skills=[general_labor], pinned on map")
 
         # Prove the reward-exploit guard holds during normal profile edits
-        r = c.patch("/api/volunteers/me/", {"skills": ["logistics"], "total_points": 999999}, format="json")
+        r = c.patch("/api/volunteers/me/", {"skills": ["general_labor"], "total_points": 999999}, format="json")
         bob = Volunteer.objects.get(user__email="bob@vol.com")
         assert bob.total_points == 0, "exploit not blocked!"
         ok("Reward exploit guard", "PATCH total_points=999999 ignored (still 0)")

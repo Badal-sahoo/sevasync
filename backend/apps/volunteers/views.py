@@ -6,6 +6,7 @@ from .models import Volunteer
 from .serializers import VolunteerSerializer
 from apps.tasks.models import Task, Assignment
 from apps.users.permissions import IsVolunteer
+from core.constants.skills import SKILL_TAXONOMY
 
 
 @api_view(['POST'])
@@ -77,6 +78,26 @@ def volunteer_dashboard(request):
         "active_tasks": active_list,
         "requested_tasks": request_list,
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def skill_options(request):
+    """The fixed skill taxonomy, grouped by need type and tier.
+
+    Single source of truth shared with the frontend profile form — a volunteer
+    can only ever submit skill IDs that appear here (enforced separately in
+    VolunteerSerializer.validate_skills), and matching scores against this
+    same structure, so the two can never drift apart.
+    """
+    data = {
+        need_type: {
+            tier: [{"id": skill_id, "label": label} for skill_id, label in skills]
+            for tier, skills in tiers.items()
+        }
+        for need_type, tiers in SKILL_TAXONOMY.items()
+    }
+    return Response(data)
 
 
 @api_view(['GET'])
